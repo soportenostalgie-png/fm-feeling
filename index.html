@@ -88,9 +88,10 @@
             padding: 5px 10px;
             box-shadow: inset 0 0 12px rgba(0, 255, 100, 0.25), 0 2px 8px rgba(0,0,0,0.9);
             position: relative;
-            width: 155px;
+            width: 155px; /* Ancho fijo absoluto de la caja */
         }
 
+        /* Simulación de la trama de pantalla de fósforo antiguo */
         .retro-clock-container::before {
             content: " ";
             display: block;
@@ -104,7 +105,7 @@
         }
 
         .retro-time {
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Courier New', Courier, monospace; /* Fuente de ancho fijo estricto para evitar saltos */
             font-size: 20px;
             font-weight: bold;
             color: #00ff66;
@@ -459,7 +460,7 @@
             cursor: pointer;
         }
 
-        /* --- DOBLE MARQUESINA INFERIOR --- */
+        /* --- DOBLE MARQUESINA INFERIOR (LENTA Y LUIS Y PAUSADA: 50 SEGUNDOS) --- */
         .tickers-wrapper {
             width: 100%;
             display: flex;
@@ -516,7 +517,7 @@
         .ticker-track {
             display: inline-block;
             padding-left: 150px;
-            animation: ticker 50s linear infinite;
+            animation: ticker 50s linear infinite; /* VELOCIDAD MÁS LENTA (50s) */
             font-size: 14px;
             font-weight: 500;
             color: #eee;
@@ -525,7 +526,7 @@
         .news-track {
             display: inline-block;
             padding-left: 200px;
-            animation: ticker 50s linear infinite;
+            animation: ticker 50s linear infinite; /* VELOCIDAD MÁS LENTA IGUALADA (50s) */
             font-size: 14px;
             font-weight: 500;
             color: #fff;
@@ -695,6 +696,7 @@
                 <a onclick="abrirSeccion('eventos')">Eventos</a>
                 <a onclick="abrirSeccion('apoyan')">Apoyan este sentimiento</a>
             </nav>
+            <!-- RELOJ DIGITAL FÓSFORO RETRO 90S (NÚMEROS 100% ESTÁTICOS) -->
             <div class="retro-clock-container">
                 <div class="retro-time" id="retro-time">00:00:00</div>
                 <div class="retro-date" id="retro-date">--/--/----</div>
@@ -805,27 +807,10 @@
         © 2026 FM Feeling. Transmitiendo los mejores clásicos.
     </footer>
 
-    <!-- SDK de Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <script>
-        // Configuración automática de Supabase con la Publishable key correcta
-        const SUPABASE_URL = 'https://wqkwjohykqdjrihmlwut.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_4p84L_X_gJ72Rac1qDWnnA_A-Z4o...';
-        
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        let playlistOriginal = [];
-        let playlistRandom = [];
-        let currentTrackIndex = 0;
-
-        const audio = document.getElementById('audio-player');
-        const playBtn = document.getElementById('play-btn');
-        const reelLeft = document.getElementById('reel-left');
-        const reelRight = document.getElementById('reel-right');
-        const cassetteWindow = document.getElementById('cassette-window');
-        const trackTitle = document.getElementById('track-title');
-        const unmuteBanner = document.getElementById('unmute-banner');
+        const playlistOriginal = [
+            "https://wqkwjohykqdjrihmlwut.supabase.co/storage/v1/object/public/Musica/01.mp3"
+        ];
 
         function shuffleArray(array) {
             let shuffled = [...array];
@@ -836,54 +821,26 @@
             return shuffled;
         }
 
-        // Función para leer la carpeta de Supabase de forma automática
-        async function cargarPlaylistDesdeSupabase() {
-            try {
-                const { data, error } = await supabaseClient
-                    .storage
-                    .from('Musica')
-                    .list('', {
-                        limit: 100,
-                        sortBy: { column: 'name', order: 'asc' }
-                    });
+        let playlistRandom = shuffleArray(playlistOriginal);
+        let currentTrackIndex = 0;
 
-                if (error) throw error;
+        const audio = document.getElementById('audio-player');
+        const playBtn = document.getElementById('play-btn');
+        const reelLeft = document.getElementById('reel-left');
+        const reelRight = document.getElementById('reel-right');
+        const cassetteWindow = document.getElementById('cassette-window');
+        const trackTitle = document.getElementById('track-title');
+        const unmuteBanner = document.getElementById('unmute-banner');
 
-                if (data && data.length > 0) {
-                    playlistOriginal = data
-                        .filter(file => file.name.endsWith('.mp3'))
-                        .map(file => `${SUPABASE_URL}/storage/v1/object/public/Musica/${file.name}`);
+        audio.src = playlistRandom[currentTrackIndex];
 
-                    if (playlistOriginal.length > 0) {
-                        playlistRandom = shuffleArray(playlistOriginal);
-                        currentTrackIndex = 0;
-                        audio.src = playlistRandom[currentTrackIndex];
-                        console.log("Canciones cargadas automáticamente:", playlistRandom.length);
-                        return;
-                    }
-                }
-                throw new Error("No se encontraron archivos MP3");
-            } catch (e) {
-                console.log("Error al conectar con Supabase, usando respaldo manual:", e);
-                playlistOriginal = ["https://wqkwjohyqkdjrihnwlut.supabase.co/storage/v1/object/public/Musica/01.%20Hotel%20California.mp3"
-                                   "https://wqkwjohyqkdjrihnwlut.supabase.co/storage/v1/object/public/Musica/01.%20She's%20A%20River.mp3"
-                                   "https://wqkwjohyqkdjrihnwlut.supabase.co/storage/v1/object/public/Musica/david%20lee%20roth%20-%20night%20life.mp3"];
-                playlistRandom = shuffleArray(playlistOriginal);
-                audio.src = playlistRandom[currentTrackIndex];
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', async () => {
+        window.addEventListener('DOMContentLoaded', () => {
             audio.volume = 0.8;
-
-            await cargarPlaylistDesdeSupabase();
-
             audio.play().then(() => {
                 activarInterfazReproduccion();
-                trackTitle.innerText = "Transmisión al aire (Modo aleatorio automático)";
+                trackTitle.innerText = "Transmisión al aire (Modo aleatorio)";
             }).catch(e => {
-                console.log("Autoplay bloqueado por el navegador:", e);
-                trackTitle.innerText = "Transmisión lista (Hacé clic en reproducir)";
+                console.log("Autoplay bloqueado:", e);
             });
 
             cargarClimaOriginal();
@@ -891,21 +848,27 @@
             iniciarRelojRetro();
         });
 
+        // Reloj digital automático 90s con fuente de ancho fijo (sin saltos)
         function iniciarRelojRetro() {
             function actualizarReloj() {
                 const ahora = new Date();
+                
+                // Hora formato digital
                 const horas = String(ahora.getHours()).padStart(2, '0');
                 const minutos = String(ahora.getMinutes()).padStart(2, '0');
                 const segundos = String(ahora.getSeconds()).padStart(2, '0');
                 document.getElementById('retro-time').innerText = `${horas}:${minutos}:${segundos}`;
 
+                // Fecha y mes automático
                 const opcionesFecha = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
-                document.getElementById('retro-date').innerText = ahora.toLocaleDateString('es-ES', opcionesFecha);
+                const fechaFormateada = ahora.toLocaleDateString('es-ES', opcionesFecha);
+                document.getElementById('retro-date').innerText = fechaFormateada;
             }
             actualizarReloj();
             setInterval(actualizarReloj, 1000);
         }
 
+        // Clima original
         async function cargarClimaOriginal() {
             const locaciones = [
                 { nombre: "Buenos Aires", lat: -34.60, lon: -58.38 },
@@ -919,6 +882,7 @@
             ];
 
             let htmlClima = "";
+
             try {
                 const promesas = locaciones.map(loc => 
                     fetch(`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current_weather=true`)
@@ -928,6 +892,7 @@
                 );
 
                 const resultados = await Promise.all(promesas);
+
                 resultados.forEach(item => {
                     if (item) {
                         htmlClima += `<span class="ticker-item"><span>${item.nombre}</span>: ${item.temp}°C, Mayormente nublado</span>`;
@@ -935,14 +900,19 @@
                 });
 
                 if (!htmlClima) throw new Error("Sin datos");
-                document.getElementById('ticker-track').innerHTML = htmlClima + htmlClima;
+
+                const tickerTrack = document.getElementById('ticker-track');
+                tickerTrack.innerHTML = htmlClima + htmlClima;
+
             } catch (error) {
                 const respaldo = `<span class="ticker-item"><span>Buenos Aires</span>: 15°C, Mayormente nublado</span>` +
-                                 `<span class="ticker-item"><span>Córdoba</span>: 18°C, Parcialmente nublado</span>`;
+                                 `<span class="ticker-item"><span>Córdoba</span>: 18°C, Parcialmente nublado</span>` +
+                                 `<span class="ticker-item"><span>Mar del Plata</span>: 12°C, Nublado</span>`;
                 document.getElementById('ticker-track').innerHTML = respaldo + respaldo;
             }
         }
 
+        // Carga de Panorama de Noticias Formal
         async function cargarPanoramaInformativo() {
             try {
                 const rssUrl = encodeURIComponent("https://www.clarin.com/rss/lo-ultimo/");
@@ -961,10 +931,13 @@
             } catch (e) {
                 const noticiasBackup = [
                     "PANORAMA DE NOTICIAS: Actualización constante de los temas más destacados de la jornada.",
-                    "PANORAMA DE NOTICIAS: Información general y novedades del ámbito nacional e internacional."
+                    "PANORAMA DE NOTICIAS: Información general y novedades del ámbito nacional e internacional.",
+                    "PANORAMA DE NOTICIAS: Servicios, agenda cultural y pronóstico extendido en directo."
                 ];
                 let htmlBackup = "";
-                noticiasBackup.forEach(n => { htmlBackup += `<span class="news-item">${n}</span>`; });
+                noticiasBackup.forEach(n => {
+                    htmlBackup += `<span class="news-item">${n}</span>`;
+                });
                 document.getElementById('news-track').innerHTML = htmlBackup + htmlBackup;
             }
         }
