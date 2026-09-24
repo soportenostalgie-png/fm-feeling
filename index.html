@@ -946,9 +946,21 @@
 
         function activarSonidoAlAire() {
             audio.muted = false;
-            unmuteBanner.style.transform = "translateY(-100%)";
-            setTimeout(() => unmuteBanner.remove(), 300);
-            activarInterfazReproduccion();
+            if(unmuteBanner) {
+                unmuteBanner.style.transform = "translateY(-100%)";
+                setTimeout(() => unmuteBanner.remove(), 300);
+            }
+            
+            // Forzar carga y reproducción inmediata al desmutear
+            if (!audio.src || audio.src === "") {
+                loadTrack(currentTrackIndex);
+            }
+            
+            audio.play().then(() => {
+                activarInterfazReproduccion();
+            }).catch(e => {
+                console.log("Error al reproducir tras desmutear:", e);
+            });
         }
 
         function togglePlay() {
