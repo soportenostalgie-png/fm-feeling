@@ -267,7 +267,7 @@
             box-shadow: inset 0 0 25px rgba(204, 0, 0, 0.8), 0 0 15px rgba(255, 0, 0, 0.4);
         }
 
-        /* Video del casete en bucle exacto */
+        /* Video del casete en bucle sincronizado */
         .cassette-video-player {
             width: 100%;
             height: 100%;
@@ -604,9 +604,9 @@
                 </div>
             </div>
 
-            <!-- VIDEO REAL DEL CASETE EN BUCLE (Cassetteok.mp4) -->
+            <!-- VIDEO DEL CASETE SIN AUTOPLAY INICIAL -->
             <div class="cassette-window" id="cassette-window">
-                <video class="cassette-video-player" autoplay muted loop playsinline>
+                <video class="cassette-video-player" id="cassette-video" muted loop playsinline preload="auto">
                     <source src="Cassetteok.mp4" type="video/mp4">
                     Tu navegador no soporta la reproducción de video.
                 </video>
@@ -620,7 +620,7 @@
         </div>
 
         <div class="controls-wrapper">
-            <div class="track-info" id="track-title">Transmitiendo en vivo...</div>
+            <div class="track-info" id="track-title">Transmisión en directo</div>
             <button class="play-btn" id="play-btn" onclick="togglePlay()">⏸ Pausar Transmisión</button>
             <div class="volume-container">
                 <span>🔊</span>
@@ -758,6 +758,7 @@
         const audio = document.getElementById('audio-player');
         const playBtn = document.getElementById('play-btn');
         const cassetteWindow = document.getElementById('cassette-window');
+        const cassetteVideo = document.getElementById('cassette-video');
         const trackTitle = document.getElementById('track-title');
         const unmuteBanner = document.getElementById('unmute-banner');
 
@@ -767,9 +768,10 @@
             audio.volume = 0.8;
             audio.play().then(() => {
                 activarInterfazReproduccion();
-                trackTitle.innerText = "Transmisión al aire (Modo aleatorio)";
+                trackTitle.innerText = "Transmisión en directo";
             }).catch(e => {
                 console.log("Autoplay bloqueado:", e);
+                desactivarInterfazReproduccion();
             });
 
             cargarClimaOriginal();
@@ -901,13 +903,15 @@
         function activarInterfazReproduccion() {
             playBtn.innerText = "⏸ Pausar Transmisión";
             cassetteWindow.classList.add('playing-light');
-            trackTitle.innerText = `Transmitiendo en vivo (Pista aleatoria ${currentTrackIndex + 1})`;
+            trackTitle.innerText = "Transmisión en directo";
+            cassetteVideo.play().catch(err => console.log("Video play error:", err));
         }
 
         function desactivarInterfazReproduccion() {
             playBtn.innerText = "▶ Sintonizar al Aire";
             cassetteWindow.classList.remove('playing-light');
             trackTitle.innerText = "Transmisión en pausa";
+            cassetteVideo.pause();
         }
 
         audio.addEventListener('ended', () => {
@@ -918,7 +922,7 @@
             }
             audio.src = playlistRandom[currentTrackIndex];
             audio.play();
-            trackTitle.innerText = `Transmitiendo en vivo (Pista aleatoria ${currentTrackIndex + 1})`;
+            trackTitle.innerText = "Transmisión en directo";
         });
 
         function changeVolume(val) {
