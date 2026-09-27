@@ -172,99 +172,26 @@
             50% { opacity: 0.3; }
         }
 
-        .cassette-container {
-            width: 440px;
-            max-width: 100%;
-            margin: 20px auto;
-            background: #1a1a1a;
-            border: 3px solid #333;
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
-            position: relative;
-        }
-        
-        .cassette-label-paper {
-            background: #fbf9f1;
-            color: #111;
-            border-radius: 4px;
-            padding: 7px 12px;
-            box-shadow: inset 0 0 8px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.4);
-            border: 1px solid #d8d2be;
-            position: relative;
-            margin-bottom: 15px;
-        }
-
-        .cassette-label-paper::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, #cc0000 0%, #cc0000 70%, #111 70%, #111 100%);
-        }
-
-        .label-header {
-            display: flex;
-            justify-content: space-between;
-            font-size: 10px;
-            font-family: 'Arial Black', sans-serif;
-            font-weight: bold;
-            color: #222;
-            border-bottom: 2px solid #111;
-            padding-bottom: 2px;
-            margin-bottom: 4px;
-            text-transform: uppercase;
-        }
-
-        .label-brand-custom {
-            color: #cc0000;
-            letter-spacing: 1px;
-        }
-
-        .label-title-box {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .label-title {
-            font-size: 12px;
-            font-weight: bold;
-            color: #111;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            font-family: 'Arial', sans-serif;
-        }
-
-        .label-side {
-            font-size: 13px;
-            background: #cc0000;
-            color: #fff;
-            padding: 0 6px;
-            border-radius: 2px;
-            font-family: 'Impact', sans-serif;
-        }
-
-        /* --- VENTANA DEL VIDEO DE CASETE --- */
+        /* --- VENTANA DEL VIDEO DE CASETE DIRECTA --- */
         .cassette-window {
             background: #000;
-            border: 2px solid #444;
-            border-radius: 6px;
-            height: 160px; 
+            border: 3px solid #333;
+            border-radius: 12px;
+            width: 440px;
+            max-width: 100%;
+            height: 260px;
             display: flex;
             justify-content: center;
             align-items: center;
             position: relative;
             overflow: hidden;
             transition: all 0.5s ease;
-            box-shadow: inset 0 0 18px rgba(0,0,0,0.95);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.8);
         }
 
         .cassette-window.playing-light {
             border-color: #cc0000;
-            box-shadow: inset 0 0 25px rgba(204, 0, 0, 0.8), 0 0 15px rgba(255, 0, 0, 0.4);
+            box-shadow: 0 0 25px rgba(204, 0, 0, 0.8), 0 0 15px rgba(255, 0, 0, 0.4);
         }
 
         /* Video del casete en bucle sincronizado */
@@ -273,26 +200,6 @@
             height: 100%;
             object-fit: cover;
             display: block;
-        }
-
-        .cassette-footer-bar {
-            height: 15px;
-            background: linear-gradient(to bottom, #111, #080808);
-            border-radius: 0 0 6px 6px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 18px;
-            border-top: 1px solid #222;
-            margin-top: 15px;
-        }
-
-        .footer-notch {
-            width: 18px;
-            height: 5px;
-            background: #030303;
-            border-radius: 2px;
-            box-shadow: inset 0 1px 2px rgba(255,255,255,0.06);
         }
 
         /* CONTROLES */
@@ -592,31 +499,12 @@
     <main>
         <div class="live-indicator">● EN VIVO AL AIRE</div>
         
-        <div class="cassette-container">
-            <div class="cassette-label-paper">
-                <div class="label-header">
-                    <span class="label-brand-custom">TAPE D 90 / NORMAL POSITION</span>
-                    <span>STEREO</span>
-                </div>
-                <div class="label-title-box">
-                    <span class="label-title">Clásicos A Puro Sentimiento</span>
-                    <span class="label-side">A</span>
-                </div>
-            </div>
-
-            <!-- VIDEO DEL CASETE SIN AUTOPLAY INICIAL -->
-            <div class="cassette-window" id="cassette-window">
-                <video class="cassette-video-player" id="cassette-video" muted loop playsinline preload="auto">
-                    <source src="Cassetteok.mp4" type="video/mp4">
-                    Tu navegador no soporta la reproducción de video.
-                </video>
-            </div>
-
-            <div class="cassette-footer-bar">
-                <div class="footer-notch"></div>
-                <div class="footer-notch"></div>
-                <div class="footer-notch"></div>
-            </div>
+        <!-- VIDEO DEL CASETE LIMPIO SIN RECUADRO ADICIONAL -->
+        <div class="cassette-window" id="cassette-window">
+            <video class="cassette-video-player" id="cassette-video" muted loop playsinline preload="auto">
+                <source src="Cassetteok.mp4" type="video/mp4">
+                Tu navegador no soporta la reproducción de video.
+            </video>
         </div>
 
         <div class="controls-wrapper">
