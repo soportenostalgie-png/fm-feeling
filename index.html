@@ -77,43 +77,6 @@
             filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
         }
 
-        /* --- CENTRO DEL HEADER: ECUALIZADOR + FRASE --- */
-        .header-center {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-        }
-
-        /* Contenedor del ecualizador audiorítmico simulado */
-        .equalizer {
-            display: flex;
-            align-items: flex-end;
-            gap: 3px;
-            height: 25px;
-            padding: 0 5px;
-        }
-
-        .eq-bar {
-            width: 4px;
-            background: linear-gradient(to top, #ff0000, #ffea00);
-            height: 4px; /* Estado inicial en pausa */
-            border-radius: 2px;
-            transition: height 0.1s ease;
-        }
-
-        /* Frase central debajo del ecualizador */
-        .header-slogan {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 11px;
-            color: #ffea00;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            text-shadow: 0 0 8px rgba(255, 234, 0, 0.5);
-            white-space: nowrap;
-        }
-
         /* --- RELOJ DIGITAL FÓSFORO 90s --- */
         .retro-clock-container {
             display: flex;
@@ -200,13 +163,64 @@
             font-size: 12px;
             font-weight: bold;
             letter-spacing: 2px;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             animation: blink 1.2s infinite;
         }
 
         @keyframes blink {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.3; }
+        }
+
+        /* --- CENTRO ESTÉTICO SOBRE EL CASETE (ECUALIZADOR + SLOGAN) --- */
+        .center-display-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 8px;
+            gap: 4px;
+        }
+
+        /* Ecualizador Estilo Vúmetro Retro (Tablitas Segmentadas) */
+        .vintage-equalizer {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            height: 36px;
+            padding: 4px 8px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid #222;
+            border-radius: 4px;
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.9);
+        }
+
+        .eq-column {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 2px;
+            width: 6px;
+            height: 100%;
+            justify-content: flex-start;
+        }
+
+        /* Bloques individuales de las tablitas */
+        .eq-block {
+            width: 100%;
+            height: 3px;
+            background-color: #1a1a1a; /* Apagado por defecto */
+            border-radius: 1px;
+            transition: background-color 0.15s ease;
+        }
+
+        /* Slogan central */
+        .header-slogan {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11.5px;
+            color: #ffea00;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(255, 234, 0, 0.6);
+            white-space: nowrap;
         }
 
         /* --- VENTANA DEL VIDEO DE CASETE DIRECTA --- */
@@ -518,26 +532,6 @@
         <div class="brand-logo">
             <img src="logo-radio.jpg" alt="FM Feeling">
         </div>
-
-        <!-- CENTRO DEL HEADER: ECUALIZADOR Y LEYENDA -->
-        <div class="header-center">
-            <div class="equalizer" id="equalizer">
-                <div class="eq-bar"></div>
-                <div class="eq-bar"></div>
-                <div class="eq-bar"></div>
-                <div class="eq-bar"></div>
-                <div class="eq-bar"></div>
-                <div class="eq-bar"></div>
-                <div class="eq-bar"></div>
-                <div class="eq-bar"></div>
-                <div class="eq-bar"></div>
-                <div class="eq-bar"></div>
-                <div class="eq-bar"></div>
-                <div class="eq-bar"></div>
-            </div>
-            <div class="header-slogan">Clásicos a Puro Sentimiento</div>
-        </div>
-
         <div class="nav-right">
             <nav>
                 <a onclick="cerrarSecciones()">Inicio</a>
@@ -555,7 +549,15 @@
     <main>
         <div class="live-indicator">● EN VIVO AL AIRE</div>
         
-        <!-- VIDEO DEL CASETE LIMPIO SIN RECUADRO -->
+        <!-- BLOQUE CENTRAL SUPERIOR AL CASETE: ECUALIZADOR RETRO + SLOGAN -->
+        <div class="center-display-wrapper">
+            <div class="vintage-equalizer" id="vintage-equalizer">
+                <!-- Se generan dinámicamente las columnas estilo tablitas -->
+            </div>
+            <div class="header-slogan">Clásicos a Puro Sentimiento</div>
+        </div>
+        
+        <!-- VIDEO DEL CASETE LIMPIO -->
         <div class="cassette-window" id="cassette-window">
             <video class="cassette-video-player" id="cassette-video" muted loop playsinline preload="auto">
                 <source src="Cassetteok.mp4" type="video/mp4">
@@ -705,12 +707,31 @@
         const cassetteVideo = document.getElementById('cassette-video');
         const trackTitle = document.getElementById('track-title');
         const unmuteBanner = document.getElementById('unmute-banner');
-        const eqBars = document.querySelectorAll('.eq-bar');
+        
+        const totalColumns = 14;
+        const totalRows = 8;
+        const eqContainer = document.getElementById('vintage-equalizer');
         let eqInterval = null;
+
+        // Construir las columnas de tablitas LED del ecualizador
+        function construirEcualizador() {
+            eqContainer.innerHTML = '';
+            for (let i = 0; i < totalColumns; i++) {
+                const col = document.createElement('div');
+                col.className = 'eq-column';
+                for (let j = 0; j < totalRows; j++) {
+                    const block = document.createElement('div');
+                    block.className = 'eq-block';
+                    col.appendChild(block);
+                }
+                eqContainer.appendChild(col);
+            }
+        }
 
         audio.src = playlistRandom[currentTrackIndex];
 
         window.addEventListener('DOMContentLoaded', () => {
+            construirEcualizador();
             audio.volume = 0.8;
             audio.play().then(() => {
                 activarInterfazReproduccion();
@@ -741,21 +762,39 @@
             setInterval(actualizarReloj, 1000);
         }
 
-        // Animación fluida audiorítmica automática para el ecualizador
-        function iniciarEcualizador() {
+        // Movimiento más pausado, melódico y fluido con tablitas estilo LED (Verde -> Amarillo -> Rojo)
+        function iniciarEcualizadorRetro() {
             if (eqInterval) clearInterval(eqInterval);
+            const columns = eqContainer.querySelectorAll('.eq-column');
+
             eqInterval = setInterval(() => {
-                eqBars.forEach(bar => {
-                    const alturaAleatoria = Math.floor(Math.random() * 22) + 4; // Entre 4px y 26px
-                    bar.style.height = alturaAleatoria + 'px';
+                columns.forEach(col => {
+                    const blocks = col.querySelectorAll('.eq-block');
+                    // Altura aleatoria suave para música melódica/medio tiempo (entre 1 y 7 bloques encendidos)
+                    const activeHeight = Math.floor(Math.random() * 6) + 2; 
+
+                    blocks.forEach((block, index) => {
+                        if (index < activeHeight) {
+                            if (index < 4) {
+                                block.style.backgroundColor = '#00ff66'; // Verde base
+                            } else if (index < 6) {
+                                block.style.backgroundColor = '#ffea00'; // Amarillo medio
+                            } else {
+                                block.style.backgroundColor = '#ff0000'; // Rojo saturación / pico
+                            }
+                        } else {
+                            block.style.backgroundColor = '#1a1a1a'; // Apagado
+                        }
+                    });
                 });
-            }, 120);
+            }, 250); // Intervalo más lento para compasar melodías a medio tiempo
         }
 
-        function detenerEcualizador() {
+        function detenerEcualizadorRetro() {
             if (eqInterval) clearInterval(eqInterval);
-            eqBars.forEach(bar => {
-                bar.style.height = '4px'; // Se quedan reposando abajo
+            const blocks = eqContainer.querySelectorAll('.eq-block');
+            blocks.forEach(block => {
+                block.style.backgroundColor = '#1a1a1a';
             });
         }
 
@@ -869,7 +908,7 @@
             cassetteWindow.classList.add('playing-light');
             trackTitle.innerText = "Transmisión en directo";
             cassetteVideo.play().catch(err => console.log("Video play error:", err));
-            iniciarEcualizador(); // Enciende las barritas del ecualizador
+            iniciarEcualizadorRetro();
         }
 
         function desactivarInterfazReproduccion() {
@@ -877,7 +916,7 @@
             cassetteWindow.classList.remove('playing-light');
             trackTitle.innerText = "Transmisión en pausa";
             cassetteVideo.pause();
-            detenerEcualizador(); // Apaga/reposa las barritas
+            detenerEcualizadorRetro();
         }
 
         audio.addEventListener('ended', () => {
