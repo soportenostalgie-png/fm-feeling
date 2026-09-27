@@ -147,60 +147,6 @@
             color: #ffea00;
         }
 
-        /* --- FRANJA SUPERIOR CENTRAL (ECUALIZADOR + SLOGAN) --- */
-        .top-center-container {
-            position: absolute;
-            top: 22px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            z-index: 20;
-        }
-
-        /* Ecualizador Estilo Vúmetro Retro (Tablitas Segmentadas) */
-        .vintage-equalizer {
-            display: flex;
-            align-items: flex-end;
-            gap: 3px;
-            height: 28px;
-            padding: 3px 6px;
-            background: rgba(0, 0, 0, 0.75);
-            border: 1px solid #333;
-            border-radius: 4px;
-            box-shadow: inset 0 0 6px rgba(0,0,0,0.9);
-        }
-
-        .eq-column {
-            display: flex;
-            flex-direction: column-reverse;
-            gap: 2px;
-            width: 5px;
-            height: 100%;
-            justify-content: flex-start;
-        }
-
-        /* Bloques individuales de las tablitas */
-        .eq-block {
-            width: 100%;
-            height: 2.5px;
-            background-color: #1a1a1a; /* Apagado por defecto */
-            border-radius: 1px;
-            transition: background-color 0.08s ease;
-        }
-
-        .header-slogan {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 13px;
-            color: #ffea00;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            text-shadow: 0 0 12px rgba(255, 234, 0, 0.7);
-            white-space: nowrap;
-        }
-
         /* CONTENEDOR PRINCIPAL */
         main {
             display: flex;
@@ -209,7 +155,6 @@
             flex-grow: 1;
             z-index: 10;
             flex-direction: column;
-            position: relative;
         }
 
         .live-indicator {
@@ -218,7 +163,7 @@
             font-size: 12px;
             font-weight: bold;
             letter-spacing: 2px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             animation: blink 1.2s infinite;
         }
 
@@ -249,6 +194,7 @@
             box-shadow: 0 0 25px rgba(204, 0, 0, 0.8), 0 0 15px rgba(255, 0, 0, 0.4);
         }
 
+        /* Video del casete en bucle sincronizado */
         .cassette-video-player {
             width: 100%;
             height: 100%;
@@ -532,14 +478,6 @@
 
     <div class="background-studio"></div>
 
-    <!-- FRANJA SUPERIOR: ECUALIZADOR RETRO + SLOGAN CENTRADOS -->
-    <div class="top-center-container">
-        <div class="vintage-equalizer" id="vintage-equalizer">
-            <!-- Se generan dinámicamente las columnas estilo tablitas -->
-        </div>
-        <div class="header-slogan">Clásicos a Puro Sentimiento</div>
-    </div>
-
     <header>
         <div class="brand-logo">
             <img src="logo-radio.jpg" alt="FM Feeling">
@@ -561,7 +499,7 @@
     <main>
         <div class="live-indicator">● EN VIVO AL AIRE</div>
         
-        <!-- VIDEO DEL CASETE LIMPIO -->
+        <!-- VIDEO DEL CASETE LIMPIO SIN RECUADRO ADICIONAL -->
         <div class="cassette-window" id="cassette-window">
             <video class="cassette-video-player" id="cassette-video" muted loop playsinline preload="auto">
                 <source src="Cassetteok.mp4" type="video/mp4">
@@ -711,31 +649,10 @@
         const cassetteVideo = document.getElementById('cassette-video');
         const trackTitle = document.getElementById('track-title');
         const unmuteBanner = document.getElementById('unmute-banner');
-        
-        const totalColumns = 14;
-        const totalRows = 8;
-        const eqContainer = document.getElementById('vintage-equalizer');
-        let eqInterval = null;
-
-        // Construir las columnas de tablitas LED del ecualizador
-        function construirEcualizador() {
-            eqContainer.innerHTML = '';
-            for (let i = 0; i < totalColumns; i++) {
-                const col = document.createElement('div');
-                col.className = 'eq-column';
-                for (let j = 0; j < totalRows; j++) {
-                    const block = document.createElement('div');
-                    block.className = 'eq-block';
-                    col.appendChild(block);
-                }
-                eqContainer.appendChild(col);
-            }
-        }
 
         audio.src = playlistRandom[currentTrackIndex];
 
         window.addEventListener('DOMContentLoaded', () => {
-            construirEcualizador();
             audio.volume = 0.8;
             audio.play().then(() => {
                 activarInterfazReproduccion();
@@ -764,41 +681,6 @@
             }
             actualizarReloj();
             setInterval(actualizarReloj, 1000);
-        }
-
-        // Movimiento dinámico y más rápido estilo vúmetro analógico (Verde -> Amarillo -> Rojo)
-        function iniciarEcualizadorRetro() {
-            if (eqInterval) clearInterval(eqInterval);
-            const columns = eqContainer.querySelectorAll('.eq-column');
-
-            eqInterval = setInterval(() => {
-                columns.forEach(col => {
-                    const blocks = col.querySelectorAll('.eq-block');
-                    const activeHeight = Math.floor(Math.random() * totalRows) + 1;
-
-                    blocks.forEach((block, index) => {
-                        if (index < activeHeight) {
-                            if (index < 5) {
-                                block.style.backgroundColor = '#00ff66'; // Verde base
-                            } else if (index < 7) {
-                                block.style.backgroundColor = '#ffea00'; // Amarillo medio
-                            } else {
-                                block.style.backgroundColor = '#ff0000'; // Rojo saturación / pico
-                            }
-                        } else {
-                            block.style.backgroundColor = '#1a1a1a'; // Apagado
-                        }
-                    });
-                });
-            }, 110); // Velocidad rápida restaurada
-        }
-
-        function detenerEcualizadorRetro() {
-            if (eqInterval) clearInterval(eqInterval);
-            const blocks = eqContainer.querySelectorAll('.eq-block');
-            blocks.forEach(block => {
-                block.style.backgroundColor = '#1a1a1a';
-            });
         }
 
         async function cargarClimaOriginal() {
@@ -911,7 +793,6 @@
             cassetteWindow.classList.add('playing-light');
             trackTitle.innerText = "Transmisión en directo";
             cassetteVideo.play().catch(err => console.log("Video play error:", err));
-            iniciarEcualizadorRetro();
         }
 
         function desactivarInterfazReproduccion() {
@@ -919,7 +800,6 @@
             cassetteWindow.classList.remove('playing-light');
             trackTitle.innerText = "Transmisión en pausa";
             cassetteVideo.pause();
-            detenerEcualizadorRetro();
         }
 
         audio.addEventListener('ended', () => {
