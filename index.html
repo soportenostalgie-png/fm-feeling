@@ -77,7 +77,7 @@
             filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
         }
 
-        /* --- RELOJ DIGITAL FÓSFORO 90s (NÚMEROS 100% ESTÁTICOS) --- */
+        /* --- RELOJ DIGITAL FÓSFORO 90s --- */
         .retro-clock-container {
             display: flex;
             flex-direction: column;
@@ -247,19 +247,46 @@
             font-family: 'Impact', sans-serif;
         }
 
+        /* --- VENTANA DEL CASETE CON VIDEO TRANSPARENTE --- */
         .cassette-window {
             background: #060606;
             border: 2px solid #444;
             border-radius: 4px;
-            height: 75px;
+            height: 85px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 18px;
+            padding: 0 15px;
             position: relative;
             overflow: hidden;
             transition: all 0.5s ease;
             box-shadow: inset 0 0 18px rgba(0,0,0,0.95);
+        }
+
+        /* Video de fondo incrustado dentro de la ventana */
+        .window-video-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            opacity: 0.55; /* Transparencia para que se note que es la cinta/ventana */
+            pointer-events: none;
+        }
+
+        /* Capa oscura sutil para contraste */
+        .cassette-window::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.35);
+            z-index: 2;
+            pointer-events: none;
         }
 
         .window-scale {
@@ -271,9 +298,10 @@
             display: flex;
             justify-content: space-between;
             font-size: 8px;
-            color: rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.5);
             font-family: 'Courier New', monospace;
             pointer-events: none;
+            z-index: 4;
         }
         .window-scale span::before {
             content: '|';
@@ -282,27 +310,15 @@
             font-size: 6px;
         }
 
-        .cassette-window::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0) 50%);
-            pointer-events: none;
-        }
-
         .cassette-window.playing-light {
-            background: #1f0303;
             border-color: #cc0000;
             box-shadow: inset 0 0 25px rgba(204, 0, 0, 0.8), 0 0 15px rgba(255, 0, 0, 0.4);
         }
 
         .reel-hub {
-            width: 42px;
-            height: 42px;
-            background: #111;
+            width: 38px;
+            height: 38px;
+            background: rgba(17, 17, 17, 0.85);
             border: 3px solid #777;
             border-radius: 50%;
             position: relative;
@@ -310,6 +326,7 @@
             justify-content: center;
             align-items: center;
             box-shadow: 0 2px 6px rgba(0,0,0,0.8);
+            z-index: 3;
         }
 
         .spinning {
@@ -319,8 +336,8 @@
         .reel-hub::before {
             content: '';
             position: absolute;
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             background: radial-gradient(circle, #2b1406 40%, #0d0603 90%);
             border-radius: 50%;
             border: 1px dashed #3d1c08;
@@ -328,23 +345,23 @@
 
         .reel-gear {
             position: absolute;
-            width: 18px;
-            height: 18px;
+            width: 14px;
+            height: 14px;
             background: #1a1a1a;
             border: 2px dashed #bbb;
             border-radius: 50%;
-            z-index: 2;
+            z-index: 4;
         }
 
         .reel-hub::after {
             content: '';
             position: absolute;
-            width: 7px;
-            height: 7px;
+            width: 6px;
+            height: 6px;
             background: #000;
             border-radius: 50%;
             border: 1px solid #444;
-            z-index: 3;
+            z-index: 5;
         }
 
         @keyframes spin {
@@ -353,13 +370,13 @@
         }
 
         .tape-bridge {
-            width: 105px;
+            width: 90px;
             height: 6px;
-            background: #120703;
+            background: rgba(18, 7, 3, 0.9);
             border: 1px solid #281105;
             border-radius: 2px;
             box-shadow: inset 0 1px 3px rgba(0,0,0,0.9);
-            z-index: 1;
+            z-index: 3;
         }
 
         .cassette-footer-bar {
@@ -432,7 +449,7 @@
             cursor: pointer;
         }
 
-        /* --- DOBLE MARQUESINA INFERIOR --- */
+        /* DOBLE MARQUESINA INFERIOR */
         .tickers-wrapper {
             width: 100%;
             display: flex;
@@ -668,7 +685,7 @@
                 <a onclick="abrirSeccion('eventos')">Eventos</a>
                 <a onclick="abrirSeccion('apoyan')">Apoyan este sentimiento</a>
             </nav>
-            <!-- RELOJ DIGITAL FÓSFORO RETRO 90S (NÚMEROS 100% ESTÁTICOS) -->
+            <!-- RELOJ DIGITAL FÓSFORO RETRO 90S -->
             <div class="retro-clock-container">
                 <div class="retro-time" id="retro-time">00:00:00</div>
                 <div class="retro-date" id="retro-date">--/--/----</div>
@@ -691,7 +708,13 @@
                 </div>
             </div>
 
+            <!-- VENTANA DEL CASETE CON VIDEO TRANSPARENTE DE FONDO -->
             <div class="cassette-window" id="cassette-window">
+                <!-- Reemplazá 'video-cassette.mp4' por el nombre o enlace de tu video -->
+                <video class="window-video-bg" autoplay muted loop playsinline>
+                    <source src="video-cassette.mp4" type="video/mp4">
+                </video>
+
                 <div class="reel-hub" id="reel-left">
                     <div class="reel-gear"></div>
                 </div>
