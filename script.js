@@ -64,12 +64,16 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 if (btnInstalar) {
   btnInstalar.addEventListener('click', async () => {
-    if (!deferredPrompt) return;
+    // Agregamos esto para probar si entra al click
+    if (!deferredPrompt) {
+      alert("El navegador aún no cargó el evento de instalación. Prueba recargando la página.");
+      return;
+    }
+    
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      console.log('El usuario aceptó instalar la PWA');
-    }
+    console.log(`Resultado de la instalación: ${outcome}`);
+    
     deferredPrompt = null;
     btnInstalar.style.display = 'none';
   });
