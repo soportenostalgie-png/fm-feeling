@@ -1,31 +1,32 @@
-// Prueba directa del botón de instalación
+// Script final de instalación para la PWA de FM Feeling
 let deferredPrompt;
+const btnInstalar = document.getElementById('btnInstalar');
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  console.log("¡El navegador autorizó la instalación de la PWA!");
-});
-
-// Esto se ejecuta apenas cargue la página
-document.addEventListener('DOMContentLoaded', () => {
-  const btnInstalar = document.getElementById('btnInstalar');
-  
   if (btnInstalar) {
-    btnInstalar.addEventListener('click', async () => {
-      // 1. Esto DEBE salir en la pantalla obligatoriamente al tocar el botón
-      alert("¡El botón está respondiendo al toque!");
-
-      // 2. Si el navegador guardó el prompt, lo lanza
-      if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log(`Resultado: ${outcome}`);
-        deferredPrompt = null;
-      } else {
-        // 3. Si el navegador no lo guardó, te da la guía manual exacta
-        alert("Para instalar la app, toca los tres puntitos arriba a la derecha de tu navegador y selecciona 'Instalar aplicación'.");
-      }
-    });
+    btnInstalar.style.display = 'block'; // Muestra el botón cuando el navegador autoriza
   }
 });
+
+if (btnInstalar) {
+  btnInstalar.addEventListener('click', async () => {
+    if (!deferredPrompt) {
+      // Si por alguna razón el navegador ya consumió el evento, guiamos al usuario
+      alert("Para instalar FM Feeling, toca los tres puntitos arriba a la derecha de tu navegador y selecciona 'Instalar aplicación'.");
+      return;
+    }
+    
+    // Lanza el cartel nativo de instalación de Android/Chrome
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      console.log('El usuario instaló la app exitosamente');
+    }
+    
+    deferredPrompt = null;
+    btnInstalar.style.display = 'none';
+  });
+}
