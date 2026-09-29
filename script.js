@@ -50,31 +50,40 @@ if ('serviceWorker' in navigator) {
       .catch((err) => console.log('Error al registrar el Service Worker', err));
   });
 }
-// Lógica para el botón de instalación de la PWA
+// Diagnóstico directo del botón de instalación
 let deferredPrompt;
-const btnInstalar = document.getElementById('btnInstalar');
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  if (btnInstalar) {
-    btnInstalar.style.display = 'block';
+  const btn = document.getElementById('btnInstalar');
+  if (btn) {
+    btn.style.display = 'block';
   }
 });
 
-if (btnInstalar) {
-  btnInstalar.addEventListener('click', async () => {
-    // Agregamos esto para probar si entra al click
-    if (!deferredPrompt) {
-      alert("El navegador aún no cargó el evento de instalación. Prueba recargando la página.");
-      return;
-    }
-    
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`Resultado de la instalación: ${outcome}`);
-    
-    deferredPrompt = null;
+// Forzamos la detección del botón ni bien carga la página
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('btnInstalar');
+  
+  if (btn) {
+    btn.addEventListener('click', async () => {
+      // Si tocamos el botón, esto DEBE mostrarse obligatoriamente
+      alert("¡El botón funciona! Intentando abrir el instalador...");
+
+      if (!deferredPrompt) {
+        alert("El navegador no liberó el instalador automático. Prueba yendo a los 3 puntitos del navegador > 'Instalar aplicación'.");
+        return;
+      }
+      
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`Resultado: ${outcome}`);
+      deferredPrompt = null;
+      btn.style.display = 'none';
+    });
+  }
+});
     btnInstalar.style.display = 'none';
   });
 }
