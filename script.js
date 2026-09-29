@@ -1,13 +1,14 @@
-// Script limpio para el botón de instalación de FM Feeling
+// Script corregido para la PWA de FM Feeling
 let deferredPrompt = null;
 const btnInstalar = document.getElementById('btnInstalar');
 
 window.addEventListener('beforeinstallprompt', (e) => {
-  // Previene que aparezca el banner automático del navegador
+  // Evita que aparezca el banner automático del navegador
   e.preventDefault();
-  // Guarda el evento para usarlo con tu botón
+  // Guarda el evento para cuando el usuario toque tu botón
   deferredPrompt = e;
   
+  // Muestra el botón de instalación
   if (btnInstalar) {
     btnInstalar.style.display = 'block';
   }
@@ -16,23 +17,22 @@ window.addEventListener('beforeinstallprompt', (e) => {
 if (btnInstalar) {
   btnInstalar.addEventListener('click', async () => {
     if (!deferredPrompt) {
-      alert("Para instalar FM Feeling, ve a los tres puntitos arriba a la derecha de tu navegador y selecciona 'Instalar aplicación'.");
+      // Si el navegador aún no liberó el evento, avisa al usuario
+      alert("Para instalar FM Feeling, toca los tres puntitos arriba a la derecha de tu navegador y selecciona 'Instalar aplicación'.");
       return;
     }
 
-    // Muestra el prompt nativo de instalación
+    // Lanza el cartel nativo del sistema
     deferredPrompt.prompt();
     
-    // Espera la respuesta del usuario
-    const choiceResult = await deferredPrompt.userChoice;
+    // Espera la decisión del usuario
+    const { outcome } = await deferredPrompt.userChoice;
     
-    if (choiceResult.outcome === 'accepted') {
-      console.log('Usuario aceptó la instalación');
-    } else {
-      console.log('Usuario rechazó la instalación');
+    if (outcome === 'accepted') {
+      console.log('El usuario aceptó la instalación');
     }
     
-    // Resetea la variable y oculta el botón
+    // Limpia la variable y oculta el botón
     deferredPrompt = null;
     btnInstalar.style.display = 'none';
   });
