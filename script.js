@@ -50,3 +50,27 @@ if ('serviceWorker' in navigator) {
       .catch((err) => console.log('Error al registrar el Service Worker', err));
   });
 }
+// Lógica para el botón de instalación de la PWA
+let deferredPrompt;
+const btnInstalar = document.getElementById('btnInstalar');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (btnInstalar) {
+    btnInstalar.style.display = 'block';
+  }
+});
+
+if (btnInstalar) {
+  btnInstalar.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      console.log('El usuario aceptó instalar la PWA');
+    }
+    deferredPrompt = null;
+    btnInstalar.style.display = 'none';
+  });
+}
