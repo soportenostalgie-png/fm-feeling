@@ -802,48 +802,43 @@
         const trackTitle = document.getElementById('track-title');
         const unmuteBanner = document.getElementById('unmute-banner');
 
-        // --- SISTEMA DE MEMORIA "EN VIVO" ---
-        // Intentamos recuperar el estado anterior de la radio
-        const savedTrackIndex = localStorage.getItem('fm_feeling_track_index');
-        const savedCurrentTime = localStorage.getItem('fm_feeling_current_time');
-        const savedPlaylist = localStorage.getItem('fm_feeling_playlist');
+       // --- SISTEMA DE TRANSMISIÓN EN VIVO SINCRONIZADA ---
+        const totalCanciones = cancionesOriginales.length;
+        
+        function obtenerCancionSincronizada() {
+            const ahora = new Date();
+            const segundosDelDia = ahora.getHours() * 3600 + ahora.getMinutes() * 60 + ahora.getSeconds();
+            const duracionPromedioTema = 210; // 3 minutos y medio por pista aprox.
+            const indiceGlobal = Math.floor(segundosDelDia / duracionPromedioTema) % totalCanciones;
+            const segundosEnTema = segundosDelDia % duracionPromedioTema;
 
-        if (savedPlaylist) {
-            try {
-                // Si ya había una playlist guardada y reciente, la usamos para mantener continuidad
-                playlistRandom = JSON.parse(savedPlaylist);
-            } catch (e) {
-                console.log("Error al recuperar playlist, generando nueva.");
-            }
+            return {
+                indice: indiceGlobal,
+                tiempo: segundosEnTema
+            };
         }
 
-        if (savedTrackIndex !== null && savedTrackIndex < playlistRandom.length) {
-            currentTrackIndex = parseInt(savedTrackIndex);
-        }
+        let playlistRandom = cancionesOriginales;
+        const sincro = obtenerCancionSincronizada();
+        let currentTrackIndex = sincro.indice;
+
+        const audio = document.getElementById('audio-player');
+        const playBtn = document.getElementById('play-btn');
+        const cassetteWindow = document.getElementById('cassette-window');
+        const cassetteVideo = document.getElementById('cassette-video');
+        const trackTitle = document.getElementById('track-title');
+        const unmuteBanner = document.getElementById('unmute-banner');
 
         audio.src = playlistRandom[currentTrackIndex];
+        audio.currentTime = Math.min(sincro.tiempo, 180);
 
-        // Si había un segundo guardado, lo posicionamos ahí ni bien carga los metadatos
-        if (savedCurrentTime) {
-            audio.currentTime = parseFloat(savedCurrentTime);
-        }
-
-        // Guardar continuamente el progreso de la reproducción en el almacenamiento local
-        audio.addEventListener('timeupdate', () => {
-            localStorage.setItem('fm_feeling_current_time', audio.currentTime);
-            localStorage.setItem('fm_feeling_track_index', currentTrackIndex);
-            localStorage.setItem('fm_feeling_playlist', JSON.stringify(playlistRandom));
-        });
-
-        // Si la canción termina, pasa a la siguiente y reinicia el contador de tiempo
         audio.addEventListener('ended', () => {
             currentTrackIndex = (currentTrackIndex + 1) % playlistRandom.length;
             audio.src = playlistRandom[currentTrackIndex];
-            localStorage.setItem('fm_feeling_track_index', currentTrackIndex);
-            localStorage.setItem('fm_feeling_current_time', 0);
+            audio.currentTime = 0;
             audio.play().catch(e => console.log("Error al pasar de pista:", e));
         });
-        // -------------------------------------
+        // --------------------------------------------------
 
         window.addEventListener('DOMContentLoaded', () => {
             audio.volume = 0.8;
@@ -858,6 +853,7 @@
             cargarClimaOriginal();
             cargarPanoramaInformativo();
             iniciarRelojRetro();
+        }) 
         });
         function iniciarRelojRetro() {
             function actualizarReloj() {
