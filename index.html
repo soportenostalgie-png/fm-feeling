@@ -792,7 +792,7 @@
             return playlistFinal;
         }
 
-        let playlistRandom = generarPlaylistOrdenada();
+       let playlistRandom = generarPlaylistOrdenada();
         let currentTrackIndex = 0;
 
         const audio = document.getElementById('audio-player');
@@ -802,7 +802,48 @@
         const trackTitle = document.getElementById('track-title');
         const unmuteBanner = document.getElementById('unmute-banner');
 
+        // --- SISTEMA DE MEMORIA "EN VIVO" ---
+        // Intentamos recuperar el estado anterior de la radio
+        const savedTrackIndex = localStorage.getItem('fm_feeling_track_index');
+        const savedCurrentTime = localStorage.getItem('fm_feeling_current_time');
+        const savedPlaylist = localStorage.getItem('fm_feeling_playlist');
+
+        if (savedPlaylist) {
+            try {
+                // Si ya había una playlist guardada y reciente, la usamos para mantener continuidad
+                playlistRandom = JSON.parse(savedPlaylist);
+            } catch (e) {
+                console.log("Error al recuperar playlist, generando nueva.");
+            }
+        }
+
+        if (savedTrackIndex !== null && savedTrackIndex < playlistRandom.length) {
+            currentTrackIndex = parseInt(savedTrackIndex);
+        }
+
         audio.src = playlistRandom[currentTrackIndex];
+
+        // Si había un segundo guardado, lo posicionamos ahí ni bien carga los metadatos
+        if (savedCurrentTime) {
+            audio.currentTime = parseFloat(savedCurrentTime);
+        }
+
+        // Guardar continuamente el progreso de la reproducción en el almacenamiento local
+        audio.addEventListener('timeupdate', () => {
+            localStorage.setItem('fm_feeling_current_time', audio.currentTime);
+            localStorage.setItem('fm_feeling_track_index', currentTrackIndex);
+            localStorage.setItem('fm_feeling_playlist', JSON.stringify(playlistRandom));
+        });
+
+        // Si la canción termina, pasa a la siguiente y reinicia el contador de tiempo
+        audio.addEventListener('ended', () => {
+            currentTrackIndex = (currentTrackIndex + 1) % playlistRandom.length;
+            audio.src = playlistRandom[currentTrackIndex];
+            localStorage.setItem('fm_feeling_track_index', currentTrackIndex);
+            localStorage.setItem('fm_feeling_current_time', 0);
+            audio.play().catch(e => console.log("Error al pasar de pista:", e));
+        });
+        // -------------------------------------
 
         window.addEventListener('DOMContentLoaded', () => {
             audio.volume = 0.8;
@@ -818,7 +859,6 @@
             cargarPanoramaInformativo();
             iniciarRelojRetro();
         });
-
         function iniciarRelojRetro() {
             function actualizarReloj() {
                 const ahora = new Date();
