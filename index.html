@@ -840,7 +840,7 @@
         });
         // --------------------------------------------------
 
-        window.addEventListener('DOMContentLoaded', () => {
+       window.addEventListener('DOMContentLoaded', () => {
             audio.volume = 0.8;
             audio.play().then(() => {
                 activarInterfazReproduccion();
@@ -854,6 +854,8 @@
             cargarPanoramaInformativo();
             iniciarRelojRetro();
         });
+    });
+});
         function iniciarRelojRetro() {
             function actualizarReloj() {
                 const ahora = new Date();
