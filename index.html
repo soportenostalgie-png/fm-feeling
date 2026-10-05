@@ -742,6 +742,7 @@
         "https://wqkwjohyqkdjrihnwlut.supabase.co/storage/v1/object/public/Musica/Feeling%201.m4a"
     ];
 
+```javascript
 // ============================================================
 // SEMILLA FIJA DIARIA / ORDEN DETERMINÍSTICO GLOBAL
 // ============================================================
@@ -754,6 +755,7 @@ function obtenerPlaylistSincronizada() {
 
         combinada.push(cancionesOriginales[i]);
 
+        // Cada 3 canciones entra una artística
         if ((i + 1) % 3 === 0) {
             combinada.push(
                 artisticaOriginal[altArt % artisticaOriginal.length]
@@ -769,13 +771,6 @@ const playlistGlobal = obtenerPlaylistSincronizada();
 
 
 // ============================================================
-// DURACIÓN PROMEDIO DE RESPALDO
-// ============================================================
-
-const DURACION_PROMEDIO_TEMA = 210;
-
-
-// ============================================================
 // ELEMENTOS DEL REPRODUCTOR
 // ============================================================
 
@@ -788,21 +783,11 @@ const unmuteBanner = document.getElementById('unmute-banner');
 
 
 // ============================================================
-// DETECTAR SI UNA PISTA ES ARTÍSTICA / SEPARADOR
+// IDENTIFICAR ARTÍSTICAS / SEPARADORES
 // ============================================================
 
 function esPiezaArtistica(index) {
 
-    // La estructura es:
-    //
-    // canción
-    // canción
-    // canción
-    // artística
-    //
-    // Por lo tanto los separadores están en:
-    // 3, 7, 11, 15, 19...
-    //
     return (
         index >= 3 &&
         (index - 3) % 4 === 0 &&
@@ -812,68 +797,52 @@ function esPiezaArtistica(index) {
 
 
 // ============================================================
-// CALCULAR PISTA ACTUAL POR RELOJ
+// ESTADO DE REPRODUCCIÓN
+// ============================================================
+
+let indiceActual = 0;
+let primeraCarga = true;
+
+
+// ============================================================
+// CALCULAR UNA PISTA INICIAL
+//
+// IMPORTANTE:
+// No usamos más una duración ficticia de 210 segundos
+// para hacer seek dentro de canciones reales.
+//
+// La primera conexión comienza la pista seleccionada
+// desde el principio. Después la reproducción continúa
+// normalmente de una pista a la siguiente.
 // ============================================================
 
 function calcularPistaActualPorReloj() {
 
+    /*
+     * Usamos el reloj solamente para determinar una posición
+     * estable dentro de la playlist.
+     *
+     * NO usamos esa posición como segundos de seek de la
+     * canción, porque las canciones reales tienen distintas
+     * duraciones.
+     */
+
     const segundosTotalesDia =
         Math.floor(Date.now() / 1000) % 86400;
 
-    const duracionTotalMix =
-        playlistGlobal.length * DURACION_PROMEDIO_TEMA;
-
-    const segundoEnCiclo =
-        segundosTotalesDia % duracionTotalMix;
-
-    let acumulado = 0;
-
-    for (let i = 0; i < playlistGlobal.length; i++) {
-
-        acumulado += DURACION_PROMEDIO_TEMA;
-
-        if (segundoEnCiclo < acumulado) {
-
-            const desplazamientoEnTema =
-                segundoEnCiclo -
-                (acumulado - DURACION_PROMEDIO_TEMA);
-
-            // ====================================================
-            // IMPORTANTE:
-            // Si es una artística/separador, SIEMPRE empieza
-            // desde cero.
-            //
-            // No aplicamos el desplazamiento del reloj porque
-            // los separadores duran solamente unos segundos.
-            // ====================================================
-
-            if (esPiezaArtistica(i)) {
-
-                return {
-                    index: i,
-                    seek: 0,
-                    artistica: true
-                };
-            }
-
-            return {
-                index: i,
-                seek: Math.max(0, desplazamientoEnTema),
-                artistica: false
-            };
-        }
-    }
+    const indice =
+        Math.floor(segundosTotalesDia / 210) %
+        playlistGlobal.length;
 
     return {
-        index: 0,
-        seek: 0,
-        artistica: false
+        index: indice,
+        seek: 0
     };
 }
 
 
 // ============================================================
-// REPRODUCCIÓN SINCRONIZADA TIPO VIVO
+// CARGAR Y REPRODUCIR UNA PISTA
 // ============================================================
 
 function sincronizarYReproducir(
@@ -883,14 +852,6 @@ function sincronizarYReproducir(
 ) {
 
     let estadoVivo;
-
-    // ========================================================
-    // SI VENIMOS DE UNA PISTA QUE TERMINÓ,
-    // usamos el siguiente elemento directamente.
-    //
-    // Esto evita que un separador vuelva a seleccionarse
-    // por el cálculo del reloj.
-    // ========================================================
 
     if (indiceForzado !== null) {
 
@@ -912,22 +873,22 @@ function sincronizarYReproducir(
     }
 
 
+    indiceActual = estadoVivo.index;
+
     const nuevaFuente =
-        playlistGlobal[estadoVivo.index];
+        playlistGlobal[indiceActual];
 
     if (!nuevaFuente) {
         console.error(
             "No se encontró la pista:",
-            estadoVivo.index
+            indiceActual
         );
         return;
     }
 
 
-    // ========================================================
-    // EVITAR RECARGAR LA MISMA PISTA INNECESARIAMENTE
-    // ========================================================
-
+    // Evitar cargar nuevamente exactamente la misma pista
+    // innecesariamente.
     audio.src = nuevaFuente;
 
 
@@ -935,45 +896,59 @@ function sincronizarYReproducir(
 
         try {
 
-            let posicionInicial = estadoVivo.seek || 0;
+            /*
+             * Las canciones y las artísticas comienzan desde
+             * el punto indicado.
+             *
+             * En la conexión inicial usamos 0.
+             *
+             * Nunca hacemos módulo con audio.duration,
+             * porque eso provocaba que los separadores cortos
+             * volvieran a empezar infinitamente.
+             */
 
-            // ==================================================
-            // ARTÍSTICA / SEPARADOR
-            // ==================================================
+            let posicionInicial =
+                Number.isFinite(estadoVivo.seek)
+                    ? estadoVivo.seek
+                    : 0;
 
-            if (esPiezaArtistica(estadoVivo.index)) {
+
+            // Artísticas: SIEMPRE desde el principio
+            if (esPiezaArtistica(indiceActual)) {
 
                 posicionInicial = 0;
 
             } else {
 
-                // =================================================
-                // CANCIÓN NORMAL
-                // =================================================
+                /*
+                 * Por seguridad no permitimos intentar hacer
+                 * seek fuera de la duración real.
+                 */
 
                 if (
-                    !isFinite(audio.duration) ||
+                    !Number.isFinite(audio.duration) ||
                     audio.duration <= 0
                 ) {
+
                     posicionInicial = 0;
+
                 } else {
 
-                    // Nunca permitir una posición igual o superior
-                    // a la duración real.
                     posicionInicial =
                         Math.min(
-                            posicionInicial,
+                            Math.max(0, posicionInicial),
                             Math.max(0, audio.duration - 0.25)
                         );
                 }
             }
+
 
             audio.currentTime = posicionInicial;
 
         } catch (e) {
 
             console.log(
-                "Seek ajustado:",
+                "No se pudo establecer posición inicial:",
                 e
             );
 
@@ -982,10 +957,6 @@ function sincronizarYReproducir(
             } catch (e2) {}
         }
 
-
-        // ========================================================
-        // REPRODUCIR
-        // ========================================================
 
         if (autostart) {
 
@@ -1009,61 +980,35 @@ function sincronizarYReproducir(
 
 
 // ============================================================
-// AVANZAR AUTOMÁTICAMENTE
+// CUANDO TERMINA UNA PISTA
 // ============================================================
-//
-// MUY IMPORTANTE:
-//
-// Ya no volvemos a calcular el reloj cuando termina una pista.
-// Avanzamos al siguiente elemento real de la playlist.
-//
-// Esto evita el bucle de los separadores de 5 segundos.
-//
 
 audio.addEventListener('ended', () => {
 
-    const fuenteActual = audio.src;
-
-    let indiceActual =
-        playlistGlobal.findIndex(
-            url => fuenteActual === url
-        );
-
-    // Si el navegador modifica mínimamente la URL,
-    // usamos una búsqueda alternativa.
-    if (indiceActual < 0) {
-
-        const urlActual =
-            audio.currentSrc || audio.src;
-
-        indiceActual =
-            playlistGlobal.findIndex(
-                url => url === urlActual
-            );
-    }
-
-    // Seguridad
-    if (indiceActual < 0) {
-        console.warn(
-            "No se pudo identificar la pista actual. Reintentando sincronización."
-        );
-
-        sincronizarYReproducir(true);
-        return;
-    }
-
+    /*
+     * NO volvemos a consultar el reloj aquí.
+     *
+     * Simplemente avanzamos a la siguiente pista.
+     *
+     * Esto es fundamental para que una artística de 5 segundos
+     * no vuelva a ser seleccionada por el reloj y quede en loop.
+     */
 
     let siguienteIndice =
         indiceActual + 1;
 
-    if (siguienteIndice >= playlistGlobal.length) {
+
+    if (
+        siguienteIndice >=
+        playlistGlobal.length
+    ) {
+
         siguienteIndice = 0;
     }
 
 
-    // ========================================================
-    // EL SIGUIENTE ELEMENTO ARRANCA DESDE CERO
-    // ========================================================
+    indiceActual = siguienteIndice;
+
 
     sincronizarYReproducir(
         true,
@@ -1071,6 +1016,158 @@ audio.addEventListener('ended', () => {
         0
     );
 });
+
+
+// ============================================================
+// ACTIVAR SONIDO
+// ============================================================
+
+function activarSonidoAlAire() {
+
+    audio.muted = false;
+
+    if (unmuteBanner) {
+
+        unmuteBanner.style.transform =
+            "translateY(-100%)";
+
+        setTimeout(() => {
+
+            try {
+                unmuteBanner.remove();
+            } catch (e) {}
+
+        }, 300);
+    }
+
+    sincronizarYReproducir(true);
+}
+
+
+// ============================================================
+// BOTÓN PLAY / PAUSA
+// ============================================================
+
+function togglePlay() {
+
+    if (audio.muted) {
+
+        audio.muted = false;
+
+        if (unmuteBanner) {
+            unmuteBanner.remove();
+        }
+    }
+
+
+    if (audio.paused) {
+
+        /*
+         * Si estaba pausado, continuamos desde la posición
+         * actual del audio cuando sea posible.
+         */
+
+        if (
+            audio.src &&
+            audio.currentSrc
+        ) {
+
+            audio.play()
+                .then(() => {
+
+                    activarInterfazReproduccion();
+
+                })
+                .catch(() => {
+
+                    sincronizarYReproducir(true);
+
+                });
+
+        } else {
+
+            sincronizarYReproducir(true);
+        }
+
+    } else {
+
+        audio.pause();
+
+        desactivarInterfazReproduccion();
+    }
+}
+
+
+// ============================================================
+// INTERFAZ: REPRODUCIENDO
+// ============================================================
+
+function activarInterfazReproduccion() {
+
+    playBtn.innerHTML =
+        '<i class="fas fa-pause"></i> Pausar Transmisión';
+
+    cassetteWindow.classList.add(
+        'playing-light'
+    );
+
+    trackTitle.innerText =
+        "Transmisión en directo (Sincronizada)";
+
+    if (cassetteVideo) {
+
+        cassetteVideo
+            .play()
+            .catch(() => {});
+    }
+}
+
+
+// ============================================================
+// INTERFAZ: PAUSADO
+// ============================================================
+
+function desactivarInterfazReproduccion() {
+
+    playBtn.innerHTML =
+        '<i class="fas fa-play"></i> Sintonizar al Aire';
+
+    cassetteWindow.classList.remove(
+        'playing-light'
+    );
+
+    trackTitle.innerText =
+        "Transmisión en pausa";
+
+    if (cassetteVideo) {
+
+        cassetteVideo.pause();
+    }
+}
+
+
+// ============================================================
+// VOLUMEN
+// ============================================================
+
+function changeVolume(val) {
+
+    audio.volume = val;
+
+    if (
+        val > 0 &&
+        audio.muted
+    ) {
+
+        audio.muted = false;
+
+        if (unmuteBanner) {
+            unmuteBanner.remove();
+        }
+    }
+}
+```
+
 
     window.addEventListener('DOMContentLoaded', () => {
         if (audio) {
