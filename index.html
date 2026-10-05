@@ -751,6 +751,7 @@ function obtenerPlaylistSincronizada() {
     let altArt = 0;
 
     for (let i = 0; i < cancionesOriginales.length; i++) {
+
         combinada.push(cancionesOriginales[i]);
 
         if ((i + 1) % 3 === 0) {
@@ -768,7 +769,7 @@ const playlistGlobal = obtenerPlaylistSincronizada();
 
 
 // ============================================================
-// DURACIÓN PROMEDIO PARA EL SISTEMA TIPO VIVO
+// DURACIÓN PROMEDIO DE RESPALDO
 // ============================================================
 
 const DURACION_PROMEDIO_TEMA = 210;
@@ -784,6 +785,30 @@ const cassetteVideo = document.getElementById('cassette-video');
 const cassetteWindow = document.getElementById('cassette-window');
 const trackTitle = document.getElementById('track-title');
 const unmuteBanner = document.getElementById('unmute-banner');
+
+
+// ============================================================
+// DETECTAR SI UNA PISTA ES ARTÍSTICA / SEPARADOR
+// ============================================================
+
+function esPiezaArtistica(index) {
+
+    // La estructura es:
+    //
+    // canción
+    // canción
+    // canción
+    // artística
+    //
+    // Por lo tanto los separadores están en:
+    // 3, 7, 11, 15, 19...
+    //
+    return (
+        index >= 3 &&
+        (index - 3) % 4 === 0 &&
+        index < playlistGlobal.length
+    );
+}
 
 
 // ============================================================
@@ -813,18 +838,239 @@ function calcularPistaActualPorReloj() {
                 segundoEnCiclo -
                 (acumulado - DURACION_PROMEDIO_TEMA);
 
+            // ====================================================
+            // IMPORTANTE:
+            // Si es una artística/separador, SIEMPRE empieza
+            // desde cero.
+            //
+            // No aplicamos el desplazamiento del reloj porque
+            // los separadores duran solamente unos segundos.
+            // ====================================================
+
+            if (esPiezaArtistica(i)) {
+
+                return {
+                    index: i,
+                    seek: 0,
+                    artistica: true
+                };
+            }
+
             return {
                 index: i,
-                seek: Math.max(0, desplazamientoEnTema)
+                seek: Math.max(0, desplazamientoEnTema),
+                artistica: false
             };
         }
     }
 
     return {
         index: 0,
-        seek: 0
+        seek: 0,
+        artistica: false
     };
 }
+
+
+// ============================================================
+// REPRODUCCIÓN SINCRONIZADA TIPO VIVO
+// ============================================================
+
+function sincronizarYReproducir(
+    autostart = true,
+    indiceForzado = null,
+    seekForzado = null
+) {
+
+    let estadoVivo;
+
+    // ========================================================
+    // SI VENIMOS DE UNA PISTA QUE TERMINÓ,
+    // usamos el siguiente elemento directamente.
+    //
+    // Esto evita que un separador vuelva a seleccionarse
+    // por el cálculo del reloj.
+    // ========================================================
+
+    if (indiceForzado !== null) {
+
+        estadoVivo = {
+            index:
+                indiceForzado >= playlistGlobal.length
+                    ? 0
+                    : indiceForzado,
+
+            seek:
+                seekForzado !== null
+                    ? seekForzado
+                    : 0
+        };
+
+    } else {
+
+        estadoVivo = calcularPistaActualPorReloj();
+    }
+
+
+    const nuevaFuente =
+        playlistGlobal[estadoVivo.index];
+
+    if (!nuevaFuente) {
+        console.error(
+            "No se encontró la pista:",
+            estadoVivo.index
+        );
+        return;
+    }
+
+
+    // ========================================================
+    // EVITAR RECARGAR LA MISMA PISTA INNECESARIAMENTE
+    // ========================================================
+
+    audio.src = nuevaFuente;
+
+
+    audio.onloadedmetadata = () => {
+
+        try {
+
+            let posicionInicial = estadoVivo.seek || 0;
+
+            // ==================================================
+            // ARTÍSTICA / SEPARADOR
+            // ==================================================
+
+            if (esPiezaArtistica(estadoVivo.index)) {
+
+                posicionInicial = 0;
+
+            } else {
+
+                // =================================================
+                // CANCIÓN NORMAL
+                // =================================================
+
+                if (
+                    !isFinite(audio.duration) ||
+                    audio.duration <= 0
+                ) {
+                    posicionInicial = 0;
+                } else {
+
+                    // Nunca permitir una posición igual o superior
+                    // a la duración real.
+                    posicionInicial =
+                        Math.min(
+                            posicionInicial,
+                            Math.max(0, audio.duration - 0.25)
+                        );
+                }
+            }
+
+            audio.currentTime = posicionInicial;
+
+        } catch (e) {
+
+            console.log(
+                "Seek ajustado:",
+                e
+            );
+
+            try {
+                audio.currentTime = 0;
+            } catch (e2) {}
+        }
+
+
+        // ========================================================
+        // REPRODUCIR
+        // ========================================================
+
+        if (autostart) {
+
+            audio.play()
+                .then(() => {
+
+                    activarInterfazReproduccion();
+
+                })
+                .catch(err => {
+
+                    console.log(
+                        "Bloqueado por navegador:",
+                        err
+                    );
+
+                });
+        }
+    };
+}
+
+
+// ============================================================
+// AVANZAR AUTOMÁTICAMENTE
+// ============================================================
+//
+// MUY IMPORTANTE:
+//
+// Ya no volvemos a calcular el reloj cuando termina una pista.
+// Avanzamos al siguiente elemento real de la playlist.
+//
+// Esto evita el bucle de los separadores de 5 segundos.
+//
+
+audio.addEventListener('ended', () => {
+
+    const fuenteActual = audio.src;
+
+    let indiceActual =
+        playlistGlobal.findIndex(
+            url => fuenteActual === url
+        );
+
+    // Si el navegador modifica mínimamente la URL,
+    // usamos una búsqueda alternativa.
+    if (indiceActual < 0) {
+
+        const urlActual =
+            audio.currentSrc || audio.src;
+
+        indiceActual =
+            playlistGlobal.findIndex(
+                url => url === urlActual
+            );
+    }
+
+    // Seguridad
+    if (indiceActual < 0) {
+        console.warn(
+            "No se pudo identificar la pista actual. Reintentando sincronización."
+        );
+
+        sincronizarYReproducir(true);
+        return;
+    }
+
+
+    let siguienteIndice =
+        indiceActual + 1;
+
+    if (siguienteIndice >= playlistGlobal.length) {
+        siguienteIndice = 0;
+    }
+
+
+    // ========================================================
+    // EL SIGUIENTE ELEMENTO ARRANCA DESDE CERO
+    // ========================================================
+
+    sincronizarYReproducir(
+        true,
+        siguienteIndice,
+        0
+    );
+});
 
     window.addEventListener('DOMContentLoaded', () => {
         if (audio) {
