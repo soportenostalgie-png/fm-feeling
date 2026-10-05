@@ -1035,7 +1035,7 @@ setInterval(() => {
         }
     }
 
-    function mostrarCiudadClima() {
+  function mostrarCiudadClima() {
         const ticker = document.getElementById('ticker-track');
         if (!ticker || !climaMundial.length) return;
 
@@ -1044,20 +1044,25 @@ setInterval(() => {
 
         const icono = clima.icono ? `https:${clima.icono}` : '';
 
-        ticker.innerHTML = `
-            <span class="ticker-item clima-mundial-item">
-                <strong>🌎 ${clima.nombre.toUpperCase()}</strong>
-                ${icono ? `<img src="${icono}" alt="${clima.condicion}" style="width:28px;height:28px;vertical-align:middle;margin:0 5px;">` : ''}
-                <span>${clima.temperatura}°C</span>
-                · ${clima.condicion}
-                · Sensación ${clima.sensacion}°C
-                · Humedad ${clima.humedad}%
-                · Viento ${clima.viento} km/h
-                · <small>WeatherAPI.com</small>
-            </span>
-        `;
+        // Efecto de desvanecimiento suave para que pasen una atrás de otra
+        ticker.style.opacity = 0;
+        
+        setTimeout(() => {
+            ticker.innerHTML = `
+                <span class="ticker-item clima-mundial-item">
+                    <strong>🌎 ${clima.nombre.toUpperCase()}</strong>
+                    ${icono ? `<img src="${icono}" alt="${clima.condicion}" style="width:28px;height:28px;vertical-align:middle;margin:0 5px;">` : ''}
+                    <span>${clima.temperatura}°C</span>
+                    · ${clima.condicion}
+                    · Sensación ${clima.sensacion}°C
+                    · Humedad ${clima.humedad}%
+                    · Viento ${clima.viento} km/h
+                    · <small>WeatherAPI.com</small>
+                </span>
+            `;
+            ticker.style.opacity = 1;
+        }, 300);
     }
-
     function iniciarRotacionClima() {
         if (intervaloRotacionClima) clearInterval(intervaloRotacionClima);
         intervaloRotacionClima = setInterval(() => {
