@@ -886,20 +886,21 @@
         actualizarReloj();
         setInterval(actualizarReloj, 1000);
     }
-    // ============================================================
+        // ============================================================
     // CLIMA EN VIVO
     // ============================================================
 
     // ============================================================
     // CLIMA MUNDIAL - WEATHERAPI.COM
     // ============================================================
-
+    //
+    // IMPORTANTE:
+    // Colocar aquí la API KEY personal de WeatherAPI.
+    //
     const WEATHER_API_KEY = 'c52f6a69e4344ce0af720650260510';
 
-    // ============================================================
-    // CIUDADES
-    // ============================================================
-
+    // Ciudades que aparecerán en la rotación.
+    // Se pueden agregar o quitar sin modificar el resto del programa.
     const ciudadesClima = [
         { nombre: 'Buenos Aires', consulta: 'Buenos Aires, Argentina' },
         { nombre: 'Córdoba', consulta: 'Cordoba, Argentina' },
@@ -930,16 +931,20 @@
         { nombre: 'Estambul', consulta: 'Istanbul, Turkey' }
     ];
 
-    // ============================================================
-    // VARIABLES
-    // ============================================================
-
+    // Aquí se guardan los datos recibidos.
+    // De esta manera NO hacemos una consulta a la API cada vez
+    // que cambia la ciudad en pantalla.
     let climaMundial = [];
+
+    let indiceCiudadClima = 0;
+
+    // Intervalo de rotación visual.
+    // Cambia de ciudad sin realizar una nueva consulta.
+    let intervaloRotacionClima = null;
 
     // ============================================================
     // OBTENER CLIMA DE TODAS LAS CIUDADES
     // ============================================================
-
     async function cargarClimaOriginal() {
 
         const ticker = document.getElementById('ticker-track');
@@ -962,7 +967,6 @@
         try {
 
             const resultados = await Promise.all(
-
                 ciudadesClima.map(async ciudad => {
 
                     try {
@@ -986,33 +990,19 @@
                         const data = await res.json();
 
                         if (!data.current || !data.location) {
-                            throw new Error(
-                                'Datos meteorológicos incompletos'
-                            );
+                            throw new Error('Datos meteorológicos incompletos');
                         }
 
                         return {
                             nombre: ciudad.nombre,
-                            temperatura: Math.round(
-                                data.current.temp_c
-                            ),
-                            sensacion: Math.round(
-                                data.current.feelslike_c
-                            ),
-                            humedad: Math.round(
-                                data.current.humidity
-                            ),
-                            viento: Math.round(
-                                data.current.wind_kph
-                            ),
-                            condicion:
-                                data.current.condition.text,
-                            icono:
-                                data.current.condition.icon,
-                            pais:
-                                data.location.country,
-                            actualizado:
-                                data.current.last_updated
+                            temperatura: Math.round(data.current.temp_c),
+                            sensacion: Math.round(data.current.feelslike_c),
+                            humedad: Math.round(data.current.humidity),
+                            viento: Math.round(data.current.wind_kph),
+                            condicion: data.current.condition.text,
+                            icono: data.current.condition.icon,
+                            pais: data.location.country,
+                            actualizado: data.current.last_updated
                         };
 
                     } catch (errorCiudad) {
@@ -1031,26 +1021,22 @@
                 })
             );
 
-            // Conservar únicamente las ciudades que respondieron bien.
-            climaMundial = resultados.filter(
-                ciudad => !ciudad.error
-            );
+            climaMundial = resultados.filter(ciudad => !ciudad.error);
 
             if (!climaMundial.length) {
-                throw new Error(
-                    'No se pudo obtener información meteorológica'
-                );
+                throw new Error('No se pudo obtener información meteorológica');
             }
 
-            // Mostrar inmediatamente toda la pasarela.
-            mostrarClimaPasarela();
+            // Comenzar nuevamente desde Buenos Aires.
+            indiceCiudadClima = 0;
+
+            mostrarCiudadClima();
+
+            iniciarRotacionClima();
 
         } catch (error) {
 
-            console.error(
-                'Error general de WeatherAPI:',
-                error
-            );
+            console.error('Error general de WeatherAPI:', error);
 
             ticker.innerHTML = `
                 <span class="ticker-item">
@@ -1064,186 +1050,177 @@
 
 
     // ============================================================
-    // MOSTRAR TODAS LAS CIUDADES COMO PASARELA
+    // MOSTRAR CIUDAD ACTUAL
     // ============================================================
+    function mostrarCiudadClima() {
 
-    function mostrarClimaPasarela() {
-
-        const ticker = document.getElementById(
-            'ticker-track'
-        );
+        const ticker = document.getElementById('ticker-track');
 
         if (!ticker || !climaMundial.length) return;
 
-        // Construimos cada ciudad.
-        const contenido = climaMundial.map(clima => {
+        const clima = climaMundial[indiceCiudadClima];
 
-            const icono = clima.icono
-                ? `https:${clima.icono}`
-                : '';
+        if (!clima) return;
 
-            return `
-                <span class="ticker-item clima-mundial-item">
-
-                    <strong>
-                        🌎 ${clima.nombre.toUpperCase()}
-                    </strong>
-
-                    ${
-                        icono
-                            ? `
-                                <img
-                                    src="${icono}"
-                                    alt="${clima.condicion}"
-                                    style="
-                                        width:28px;
-                                        height:28px;
-                                        vertical-align:middle;
-                                        margin:0 6px;
-                                    "
-                                >
-                            `
-                            : ''
-                    }
-
-                    <strong>
-                        ${clima.temperatura}°C
-                    </strong>
-
-                    · ${clima.condicion}
-
-                    · Sensación ${clima.sensacion}°C
-
-                    · Humedad ${clima.humedad}%
-
-                    · Viento ${clima.viento} km/h
-
-                    <span class="separador-clima">
-                        ✦
-                    </span>
-
-                </span>
-            `;
-
-        }).join('');
-
-        // ========================================================
-        // DUPLICAMOS LA PASARELA
-        // ========================================================
-        // Esto permite que la animación sea continua.
-        // Cuando termina una vuelta, comienza inmediatamente
-        // la siguiente sin dejar espacios vacíos.
+        const icono = clima.icono
+            ? `https:${clima.icono}`
+            : '';
 
         ticker.innerHTML = `
-            <div class="clima-pasarela">
+            <span class="ticker-item clima-mundial-item">
 
-                <div class="clima-pasarela-contenido">
-                    ${contenido}
-                </div>
+                <strong>🌎 ${clima.nombre.toUpperCase()}</strong>
 
-                <div class="clima-pasarela-contenido">
-                    ${contenido}
-                </div>
+                ${icono
+                    ? `<img
+                        src="${icono}"
+                        alt="${clima.condicion}"
+                        style="
+                            width:28px;
+                            height:28px;
+                            vertical-align:middle;
+                            margin:0 5px;
+                        "
+                    >`
+                    : ''
+                }
 
-            </div>
+                <span>
+                    ${clima.temperatura}°C
+                </span>
+
+                · ${clima.condicion}
+
+                · Sensación ${clima.sensacion}°C
+
+                · Humedad ${clima.humedad}%
+
+                · Viento ${clima.viento} km/h
+
+                · <small>WeatherAPI.com</small>
+
+            </span>
         `;
+    }
 
-        // ========================================================
-        // VELOCIDAD DE LA PASARELA
-        // ========================================================
-        //
-        // Cuanto mayor sea el número, más lento.
-        // 100 segundos = desplazamiento suave y lento.
-        //
 
-        ticker.style.overflow = 'hidden';
+    // ============================================================
+    // ROTACIÓN DE CIUDADES
+    // ============================================================
+    function iniciarRotacionClima() {
 
-        const pasarela =
-            ticker.querySelector('.clima-pasarela');
-
-        if (pasarela) {
-
-            pasarela.style.display = 'flex';
-            pasarela.style.width = 'max-content';
-            pasarela.style.animation =
-                'climaPasarelaMovimiento 100s linear infinite';
-
+        if (intervaloRotacionClima) {
+            clearInterval(intervaloRotacionClima);
         }
 
-        const bloques =
-            ticker.querySelectorAll(
-                '.clima-pasarela-contenido'
-            );
+        // Cambiar de ciudad cada 12 segundos.
+        intervaloRotacionClima = setInterval(() => {
 
-        bloques.forEach(bloque => {
+            if (!climaMundial.length) return;
 
-            bloque.style.display = 'flex';
-            bloque.style.alignItems = 'center';
-            bloque.style.flexShrink = '0';
-            bloque.style.whiteSpace = 'nowrap';
+            indiceCiudadClima++;
 
-        });
+            if (indiceCiudadClima >= climaMundial.length) {
+                indiceCiudadClima = 0;
+            }
+
+            mostrarCiudadClima();
+
+        }, 12000);
     }
 
 
-    // ============================================================
-    // ANIMACIÓN CONTINUA DE LA PASARELA
-    // ============================================================
+    async function cargarPanoramaInformativo() {
+        const newsTrack = document.getElementById('news-track');
+        if (!newsTrack) return;
 
-    if (!document.getElementById('clima-pasarela-style')) {
+        const rssUrl =
+            'https://news.google.com/rss/search?q=Argentina&hl=es-419&gl=AR&ceid=AR:es-419';
 
-        const estiloClima =
-            document.createElement('style');
+        const proxyUrl =
+            'https://api.rss2json.com/v1/api.json?rss_url=' +
+            encodeURIComponent(rssUrl);
 
-        estiloClima.id =
-            'clima-pasarela-style';
+        try {
+            const res = await fetch(proxyUrl, { cache: 'no-store' });
 
-        estiloClima.innerHTML = `
-
-            .clima-pasarela {
-                display: flex;
-                width: max-content;
-                will-change: transform;
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
             }
 
-            .clima-pasarela-contenido {
-                display: flex;
-                align-items: center;
-                flex-shrink: 0;
-                white-space: nowrap;
+            const data = await res.json();
+
+            if (!data.items || !data.items.length) {
+                throw new Error('No se recibieron titulares');
             }
 
-            .clima-mundial-item {
-                display: inline-flex;
-                align-items: center;
-                white-space: nowrap;
-                margin-right: 35px;
-            }
+            const titulares = data.items
+                .slice(0, 8)
+                .map(item => {
+                    const titulo = (item.title || 'Sin título')
+                        .replace(/&amp;/g, '&')
+                        .replace(/<[^>]*>/g, '')
+                        .trim();
 
-            .clima-mundial-item img {
-                object-fit: contain;
-                flex-shrink: 0;
-            }
+                    return `
+                        <span class="news-item">
+                            <span>ÚLTIMA HORA</span>: ${titulo}
+                        </span>
+                    `;
+                })
+                .join('');
 
-            .separador-clima {
-                margin-left: 30px;
-                margin-right: 5px;
-                font-size: 18px;
-            }
+            newsTrack.innerHTML = titulares;
 
-            @keyframes climaPasarelaMovimiento {
+        } catch (e) {
 
-                0% {
-                    transform: translateX(0);
-                }
+            console.error('Error obteniendo noticias:', e);
 
-                100% {
-                    transform: translateX(-50%);
-                }
-
-            }
-
-        `;
-
-        document.head.appendChild(estiloClima);
+            newsTrack.innerHTML = `
+                <span class="news-item">
+                    <span>PANORAMA DE NOTICIAS</span>:
+                    No se pudieron actualizar los titulares en este momento.
+                    · Reintentando automáticamente...
+                </span>
+            `;
+        }
     }
+
+
+    function abrirSeccion(tipo) {
+
+        cerrarSecciones();
+
+        if(tipo === 'eventos') {
+            document.getElementById('modal-eventos').style.display = 'flex';
+
+        } else if(tipo === 'apoyan') {
+            document.getElementById('modal-apoyan').style.display = 'flex';
+        }
+    }
+
+
+    function cerrarSecciones() {
+
+        document.getElementById('modal-eventos').style.display = 'none';
+        document.getElementById('modal-apoyan').style.display = 'none';
+        document.getElementById('lightbox').style.display = 'none';
+    }
+
+
+    function verImagenGrande(src) {
+
+        document.getElementById('lightbox-img').src = src;
+        document.getElementById('lightbox').style.display = 'flex';
+    }
+
+
+    function cerrarImagenGrande() {
+
+        document.getElementById('lightbox').style.display = 'none';
+    }
+
+</script>
+</body>
+</html>
+  
