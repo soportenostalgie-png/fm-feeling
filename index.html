@@ -797,7 +797,6 @@
 
     const audio = document.getElementById('audio-player');
     const playBtn = document.getElementById('play-btn');
-    const cassetteWindow = document.getElementById('cassette-window');
     const cassetteVideo = document.getElementById('cassette-video');
     const trackTitle = document.getElementById('track-title');
     const unmuteBanner = document.getElementById('unmute-banner');
@@ -806,25 +805,21 @@
         audio.src = playlistRandom[currentTrackIndex];
     }
 
-    // Funciones auxiliares de interfaz para evitar errores fatales
+    // Funciones seguras por si los botones o banners existen o no en el HTML
     function activarInterfazReproduccion() {
         if (playBtn) playBtn.innerHTML = '<i class="fas fa-pause"></i>';
-        if (cassetteVideo) cassetteVideo.play().catch(() => {});
+        if (cassetteVideo && typeof cassetteVideo.play === 'function') {
+            cassetteVideo.play().catch(() => {});
+        }
         if (unmuteBanner) unmuteBanner.style.display = 'none';
     }
 
     function desactivarInterfazReproduccion() {
         if (playBtn) playBtn.innerHTML = '<i class="fas fa-play"></i>';
-        if (cassetteVideo) cassetteVideo.pause();
+        if (cassetteVideo && typeof cassetteVideo.pause === 'function') {
+            cassetteVideo.pause();
+        }
         if (unmuteBanner) unmuteBanner.style.display = 'block';
-    }
-
-    function cargarClimaOriginal() {
-        // Espacio para la carga del clima si tu HTML lo requiere
-    }
-
-    function cargarPanoramaInformativo() {
-        // Espacio para noticias si tu HTML lo requiere
     }
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -834,7 +829,7 @@
                 activarInterfazReproduccion();
                 if (trackTitle) trackTitle.innerText = "Transmisión en directo";
             }).catch(e => {
-                console.log("Autoplay bloqueado:", e);
+                console.log("Autoplay bloqueado por el navegador:", e);
                 desactivarInterfazReproduccion();
             });
 
@@ -842,14 +837,51 @@
             audio.addEventListener('ended', () => {
                 currentTrackIndex = (currentTrackIndex + 1) % playlistRandom.length;
                 audio.src = playlistRandom[currentTrackIndex];
-                audio.play().catch(err => console.log("Error al reproducir siguiente pista:", err));
+                audio.play().catch(err => console.log("Error al reproducir pista:", err));
             });
         }
 
-        cargarClimaOriginal();
-        cargarPanoramaInformativo();
+        // Si existen botones personalizados de play/pausa en tu HTML, los enlazamos de forma segura
+        if (playBtn) {
+            playBtn.addEventListener('click', () => {
+                if (audio.paused) {
+                    audio.play();
+                    activarInterfazReproduccion();
+                } else {
+                    audio.pause();
+                    desactivarInterfazReproduccion();
+                }
+            });
+        }
+
         iniciarRelojRetro();
     });
+
+    function iniciarRelojRetro() {
+        function actualizarReloj() {
+            const ahora = new Date();
+            
+            // Hora, minutos y segundos
+            const horas = String(ahora.getHours()).padStart(2, '0');
+            const minutos = String(ahora.getMinutes()).padStart(2, '0');
+            const segundos = String(ahora.getSeconds()).padStart(2, '0');
+            const elementoReloj = document.getElementById('retro-time');
+            if (elementoReloj) {
+                elementoReloj.innerText = `${horas}:${minutos}:${segundos}`;
+            }
+
+            // Día y año (para restaurar el sector inferior del reloj en pantalla)
+            const opcionesFecha = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+            const fechaFormateada = ahora.toLocaleDateString('es-ES', opcionesFecha);
+            const elementoFecha = document.getElementById('retro-date');
+            if (elementoFecha) {
+                elementoFecha.innerText = fechaFormateada;
+            }
+        }
+        actualizarReloj();
+        setInterval(actualizarReloj, 1000);
+    }
+</script>
 
     function iniciarRelojRetro() {
         function actualizarReloj() {
