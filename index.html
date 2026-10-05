@@ -742,11 +742,10 @@
         "https://wqkwjohyqkdjrihnwlut.supabase.co/storage/v1/object/public/Musica/Feeling%201.m4a"
     ];
 
-    // ============================================================
-// REPRODUCCIÓN TIPO VIVO - PLAYLIST SINCRONIZADA
+// ============================================================
+// SEMILLA FIJA DIARIA / ORDEN DETERMINÍSTICO GLOBAL
 // ============================================================
 
-// Orden determinístico global para sincronizar todos los servidores
 function obtenerPlaylistSincronizada() {
     let combinada = [];
     let altArt = 0;
@@ -767,96 +766,13 @@ function obtenerPlaylistSincronizada() {
 
 const playlistGlobal = obtenerPlaylistSincronizada();
 
-// Duración de respaldo.
-// Solamente se utiliza si no se puede obtener la duración real.
+
+// ============================================================
+// DURACIÓN PROMEDIO PARA EL SISTEMA TIPO VIVO
+// ============================================================
+
 const DURACION_PROMEDIO_TEMA = 210;
 
-// Duraciones reales de las pistas
-let duracionesPlaylist = [];
-let playlistPreparada = false;
-
-// ============================================================
-// OBTENER DURACIONES REALES DE LA PLAYLIST
-// ============================================================
-
-async function cargarDuracionesPlaylist() {
-
-    if (playlistPreparada) return;
-
-    console.log(
-        "Preparando duración real de",
-        playlistGlobal.length,
-        "pistas..."
-    );
-
-    const promesas = playlistGlobal.map((url, index) => {
-
-        return new Promise(resolve => {
-
-            const audioTemp = new Audio();
-
-            let resuelto = false;
-
-            const finalizar = duracion => {
-
-                if (resuelto) return;
-
-                resuelto = true;
-
-                if (
-                    typeof duracion !== 'number' ||
-                    !isFinite(duracion) ||
-                    duracion <= 0
-                ) {
-                    duracion = DURACION_PROMEDIO_TEMA;
-                }
-
-                resolve(duracion);
-            };
-
-            audioTemp.preload = 'metadata';
-
-            audioTemp.addEventListener('loadedmetadata', () => {
-                finalizar(audioTemp.duration);
-            }, { once: true });
-
-            audioTemp.addEventListener('error', () => {
-                console.warn(
-                    "No se pudo obtener duración real de la pista:",
-                    index,
-                    url
-                );
-
-                finalizar(DURACION_PROMEDIO_TEMA);
-            }, { once: true });
-
-            // Seguridad: si una pista no responde,
-            // no dejamos bloqueada toda la reproducción.
-            setTimeout(() => {
-                if (!resuelto) {
-                    console.warn(
-                        "Timeout obteniendo duración de pista:",
-                        index
-                    );
-
-                    finalizar(DURACION_PROMEDIO_TEMA);
-                }
-            }, 10000);
-
-            audioTemp.src = url;
-            audioTemp.load();
-        });
-    });
-
-    duracionesPlaylist = await Promise.all(promesas);
-
-    playlistPreparada = true;
-
-    console.log(
-        "Playlist preparada correctamente.",
-        duracionesPlaylist
-    );
-}
 
 // ============================================================
 // ELEMENTOS DEL REPRODUCTOR
@@ -869,73 +785,18 @@ const cassetteWindow = document.getElementById('cassette-window');
 const trackTitle = document.getElementById('track-title');
 const unmuteBanner = document.getElementById('unmute-banner');
 
+
 // ============================================================
-// CALCULAR PISTA ACTUAL SEGÚN EL RELOJ
+// CALCULAR PISTA ACTUAL POR RELOJ
 // ============================================================
 
 function calcularPistaActualPorReloj() {
 
-    // Segundos transcurridos desde medianoche
     const segundosTotalesDia =
         Math.floor(Date.now() / 1000) % 86400;
 
-    // Si todavía no tenemos las duraciones reales,
-    // usamos el cálculo anterior como respaldo.
-    if (
-        !duracionesPlaylist ||
-        duracionesPlaylist.length !== playlistGlobal.length
-    ) {
-
-        const duracionTotalMix =
-            playlistGlobal.length * DURACION_PROMEDIO_TEMA;
-
-        const segundoEnCiclo =
-            segundosTotalesDia % duracionTotalMix;
-
-        let acumulado = 0;
-
-        for (let i = 0; i < playlistGlobal.length; i++) {
-
-            acumulado += DURACION_PROMEDIO_TEMA;
-
-            if (segundoEnCiclo < acumulado) {
-
-                const desplazamientoEnTema =
-                    segundoEnCiclo -
-                    (acumulado - DURACION_PROMEDIO_TEMA);
-
-                return {
-                    index: i,
-                    seek: Math.max(0, desplazamientoEnTema)
-                };
-            }
-        }
-
-        return {
-            index: 0,
-            seek: 0
-        };
-    }
-
-    // ========================================================
-    // CÁLCULO CON DURACIONES REALES
-    // ========================================================
-
     const duracionTotalMix =
-        duracionesPlaylist.reduce(
-            (total, duracion) => total + duracion,
-            0
-        );
-
-    if (
-        !isFinite(duracionTotalMix) ||
-        duracionTotalMix <= 0
-    ) {
-        return {
-            index: 0,
-            seek: 0
-        };
-    }
+        playlistGlobal.length * DURACION_PROMEDIO_TEMA;
 
     const segundoEnCiclo =
         segundosTotalesDia % duracionTotalMix;
@@ -944,18 +805,13 @@ function calcularPistaActualPorReloj() {
 
     for (let i = 0; i < playlistGlobal.length; i++) {
 
-        const duracionActual =
-            duracionesPlaylist[i] || DURACION_PROMEDIO_TEMA;
-
-        acumulado += duracionActual;
+        acumulado += DURACION_PROMEDIO_TEMA;
 
         if (segundoEnCiclo < acumulado) {
 
-            const inicioDePista =
-                acumulado - duracionActual;
-
             const desplazamientoEnTema =
-                segundoEnCiclo - inicioDePista;
+                segundoEnCiclo -
+                (acumulado - DURACION_PROMEDIO_TEMA);
 
             return {
                 index: i,
@@ -969,20 +825,6 @@ function calcularPistaActualPorReloj() {
         seek: 0
     };
 }
-        const segundosTotalesDia = Math.floor(Date.now() / 1000) % 86400;
-        const duracionTotalMix = playlistGlobal.length * DURACION_PROMEDIO_TEMA;
-        const segundoEnCiclo = segundosTotalesDia % duracionTotalMix;
-        
-        let acumulado = 0;
-        for (let i = 0; i < playlistGlobal.length; i++) {
-            acumulado += DURACION_PROMEDIO_TEMA;
-            if (segundoEnCiclo < acumulado) {
-                const desplazamientoEnTema = segundoEnCiclo - (acumulado - DURACION_PROMEDIO_TEMA);
-                return { index: i, seek: Math.max(0, desplazamientoEnTema) };
-            }
-        }
-        return { index: 0, seek: 0 };
-    }
 
     window.addEventListener('DOMContentLoaded', () => {
         if (audio) {
