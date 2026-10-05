@@ -889,88 +889,247 @@
     // ============================================================
     // CLIMA EN VIVO
     // ============================================================
+```javascript
+    // ============================================================
+    // CLIMA MUNDIAL - WEATHERAPI.COM
+    // ============================================================
+    //
+    // IMPORTANTE:
+    // Colocar aquí la API KEY personal de WeatherAPI.
+    //
+    const WEATHER_API_KEY = 'c52f6a69e4344ce0af720650260510';
+
+    // Ciudades que aparecerán en la rotación.
+    // Se pueden agregar o quitar sin modificar el resto del programa.
+    const ciudadesClima = [
+        { nombre: 'Buenos Aires', consulta: 'Buenos Aires, Argentina' },
+        { nombre: 'Córdoba', consulta: 'Cordoba, Argentina' },
+        { nombre: 'Rosario', consulta: 'Rosario, Argentina' },
+        { nombre: 'Mendoza', consulta: 'Mendoza, Argentina' },
+        { nombre: 'Mar del Plata', consulta: 'Mar del Plata, Argentina' },
+        { nombre: 'Bariloche', consulta: 'San Carlos de Bariloche, Argentina' },
+        { nombre: 'Ushuaia', consulta: 'Ushuaia, Argentina' },
+
+        { nombre: 'Miami', consulta: 'Miami, Florida, USA' },
+        { nombre: 'Nueva York', consulta: 'New York, USA' },
+        { nombre: 'Los Ángeles', consulta: 'Los Angeles, California, USA' },
+        { nombre: 'Ciudad de México', consulta: 'Mexico City, Mexico' },
+        { nombre: 'Río de Janeiro', consulta: 'Rio de Janeiro, Brazil' },
+        { nombre: 'Santiago de Chile', consulta: 'Santiago, Chile' },
+        { nombre: 'Bogotá', consulta: 'Bogota, Colombia' },
+
+        { nombre: 'Madrid', consulta: 'Madrid, Spain' },
+        { nombre: 'Barcelona', consulta: 'Barcelona, Spain' },
+        { nombre: 'Londres', consulta: 'London, UK' },
+        { nombre: 'París', consulta: 'Paris, France' },
+        { nombre: 'Roma', consulta: 'Rome, Italy' },
+        { nombre: 'Berlín', consulta: 'Berlin, Germany' },
+
+        { nombre: 'Tokio', consulta: 'Tokyo, Japan' },
+        { nombre: 'Sídney', consulta: 'Sydney, Australia' },
+        { nombre: 'Dubái', consulta: 'Dubai, United Arab Emirates' },
+        { nombre: 'Estambul', consulta: 'Istanbul, Turkey' }
+    ];
+
+    // Aquí se guardan los datos recibidos.
+    // De esta manera NO hacemos una consulta a la API cada vez
+    // que cambia la ciudad en pantalla.
+    let climaMundial = [];
+
+    let indiceCiudadClima = 0;
+
+    // Intervalo de rotación visual.
+    // Cambia de ciudad sin realizar una nueva consulta.
+    let intervaloRotacionClima = null;
+
+    // ============================================================
+    // OBTENER CLIMA DE TODAS LAS CIUDADES
+    // ============================================================
     async function cargarClimaOriginal() {
+
         const ticker = document.getElementById('ticker-track');
+
         if (!ticker) return;
 
-        try {
-            const url = 'https://api.open-meteo.com/v1/forecast' +
-                '?latitude=-34.78' +
-                '&longitude=-58.38' +
-                '&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code' +
-                '&timezone=America%2FArgentina%2FBuenos_Aires' +
-                '&temperature_unit=celsius';
-
-            const res = await fetch(url, { cache: 'no-store' });
-
-            if (!res.ok) {
-                throw new Error(`HTTP ${res.status}`);
-            }
-
-            const data = await res.json();
-
-            if (!data.current) {
-                throw new Error('La API no devolvió datos actuales');
-            }
-
-            const temp = Math.round(data.current.temperature_2m);
-            const sensacion = Math.round(data.current.apparent_temperature);
-            const humedad = Math.round(data.current.relative_humidity_2m);
-            const codigo = Number(data.current.weather_code);
-
-            const condiciones = {
-                0: 'Despejado',
-                1: 'Mayormente despejado',
-                2: 'Parcialmente nublado',
-                3: 'Nublado',
-                45: 'Niebla',
-                48: 'Niebla',
-                51: 'Llovizna leve',
-                53: 'Llovizna',
-                55: 'Llovizna intensa',
-                61: 'Lluvia leve',
-                63: 'Lluvia',
-                65: 'Lluvia intensa',
-                71: 'Nieve leve',
-                73: 'Nieve',
-                75: 'Nieve intensa',
-                80: 'Chaparrones leves',
-                81: 'Chaparrones',
-                82: 'Chaparrones intensos',
-                95: 'Tormenta',
-                96: 'Tormenta con granizo',
-                99: 'Tormenta con granizo'
-            };
-
-            const estado = condiciones[codigo] || 'Condiciones variables';
-
+        if (
+            !WEATHER_API_KEY ||
+            WEATHER_API_KEY === 'PEGAR_AQUI_TU_API_KEY'
+        ) {
             ticker.innerHTML = `
                 <span class="ticker-item">
-                    Buenos Aires / Zona Sur:
-                    <span>${temp}°C</span>
-                    · Sensación ${sensacion}°C
-                    · Humedad ${humedad}%
-                    · ${estado}
-                    · Actualizado en vivo
+                    <span>CLIMA</span>:
+                    Falta configurar la API Key de WeatherAPI.com
                 </span>
             `;
-        } catch (e) {
-            console.error('Error obteniendo clima:', e);
+            return;
+        }
+
+        try {
+
+            const resultados = await Promise.all(
+                ciudadesClima.map(async ciudad => {
+
+                    try {
+
+                        const url =
+                            'https://api.weatherapi.com/v1/current.json' +
+                            '?key=' +
+                            encodeURIComponent(WEATHER_API_KEY) +
+                            '&q=' +
+                            encodeURIComponent(ciudad.consulta) +
+                            '&lang=es';
+
+                        const res = await fetch(url, {
+                            cache: 'no-store'
+                        });
+
+                        if (!res.ok) {
+                            throw new Error(`HTTP ${res.status}`);
+                        }
+
+                        const data = await res.json();
+
+                        if (!data.current || !data.location) {
+                            throw new Error('Datos meteorológicos incompletos');
+                        }
+
+                        return {
+                            nombre: ciudad.nombre,
+                            temperatura: Math.round(data.current.temp_c),
+                            sensacion: Math.round(data.current.feelslike_c),
+                            humedad: Math.round(data.current.humidity),
+                            viento: Math.round(data.current.wind_kph),
+                            condicion: data.current.condition.text,
+                            icono: data.current.condition.icon,
+                            pais: data.location.country,
+                            actualizado: data.current.last_updated
+                        };
+
+                    } catch (errorCiudad) {
+
+                        console.error(
+                            'Error obteniendo clima de:',
+                            ciudad.nombre,
+                            errorCiudad
+                        );
+
+                        return {
+                            nombre: ciudad.nombre,
+                            error: true
+                        };
+                    }
+                })
+            );
+
+            climaMundial = resultados.filter(ciudad => !ciudad.error);
+
+            if (!climaMundial.length) {
+                throw new Error('No se pudo obtener información meteorológica');
+            }
+
+            // Comenzar nuevamente desde Buenos Aires.
+            indiceCiudadClima = 0;
+
+            mostrarCiudadClima();
+
+            iniciarRotacionClima();
+
+        } catch (error) {
+
+            console.error('Error general de WeatherAPI:', error);
 
             ticker.innerHTML = `
                 <span class="ticker-item">
-                    Buenos Aires / Zona Sur:
-                    <span>Clima no disponible temporalmente</span>
+                    <span>CLIMA MUNDIAL</span>:
+                    Información meteorológica temporalmente no disponible.
                     · Reintentando automáticamente...
                 </span>
             `;
         }
     }
 
+
     // ============================================================
-    // NOTICIAS ACTUALIZADAS
-    // Google News RSS + proxy RSS2JSON para poder leer RSS desde el navegador.
+    // MOSTRAR CIUDAD ACTUAL
     // ============================================================
+    function mostrarCiudadClima() {
+
+        const ticker = document.getElementById('ticker-track');
+
+        if (!ticker || !climaMundial.length) return;
+
+        const clima = climaMundial[indiceCiudadClima];
+
+        if (!clima) return;
+
+        const icono = clima.icono
+            ? `https:${clima.icono}`
+            : '';
+
+        ticker.innerHTML = `
+            <span class="ticker-item clima-mundial-item">
+
+                <strong>🌎 ${clima.nombre.toUpperCase()}</strong>
+
+                ${icono
+                    ? `<img
+                        src="${icono}"
+                        alt="${clima.condicion}"
+                        style="
+                            width:28px;
+                            height:28px;
+                            vertical-align:middle;
+                            margin:0 5px;
+                        "
+                    >`
+                    : ''
+                }
+
+                <span>
+                    ${clima.temperatura}°C
+                </span>
+
+                · ${clima.condicion}
+
+                · Sensación ${clima.sensacion}°C
+
+                · Humedad ${clima.humedad}%
+
+                · Viento ${clima.viento} km/h
+
+                · <small>WeatherAPI.com</small>
+
+            </span>
+        `;
+    }
+
+
+    // ============================================================
+    // ROTACIÓN DE CIUDADES
+    // ============================================================
+    function iniciarRotacionClima() {
+
+        if (intervaloRotacionClima) {
+            clearInterval(intervaloRotacionClima);
+        }
+
+        // Cambiar de ciudad cada 12 segundos.
+        intervaloRotacionClima = setInterval(() => {
+
+            if (!climaMundial.length) return;
+
+            indiceCiudadClima++;
+
+            if (indiceCiudadClima >= climaMundial.length) {
+                indiceCiudadClima = 0;
+            }
+
+            mostrarCiudadClima();
+
+        }, 12000);
+    }
+```
+
     async function cargarPanoramaInformativo() {
         const newsTrack = document.getElementById('news-track');
         if (!newsTrack) return;
