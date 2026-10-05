@@ -882,15 +882,14 @@
         setInterval(actualizarReloj, 1000);
     }
 
-    async function cargarClimaOriginal() {
-        try {
-            const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.78&longitude=-58.38&current_weather=true');
-            const data = await res.json();
-            const temp = Math.round(data.current_weather.temperature);
-            document.getElementById('ticker-track').innerHTML = `<span class="ticker-item"><span>Buenos Aires / Zona Sur</span>: ${temp}°C, Condiciones estables</span>`;
-        } catch (e) {
-            document.getElementById('ticker-track').innerHTML = `<span class="ticker-item"><span>Buenos Aires</span>: 18°C, Clima óptimo para clásicos</span>`;
-        }
+   async function cargarClimaOriginal() {
+    try {
+        const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.78&longitude=-58.38&current_weather=true');
+        const data = await res.json();
+        const temp = Math.round(data.current_weather.temperature);
+        document.getElementById('ticker-track').innerHTML = `<span class="ticker-item">Buenos Aires / Zona Sur: <span>${temp}°C</span>, Condiciones estables para disfrutar de los clásicos.</span>`;
+    } catch (e) {
+        document.getElementById('ticker-track').innerHTML = `<span class="ticker-item">Buenos Aires: <span>18°C</span>, Clima óptimo en el aire.</span>`;
     }
 
     function cargarPanoramaInformativo() {
