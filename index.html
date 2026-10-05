@@ -794,44 +794,55 @@
     // ============================================================
     // CARGAR Y SINCRONIZAR PISTA
     // ============================================================
-    function sincronizarYReproducir(autostart = true, indiceForzado = null) {
-        let estado;
+   function sincronizarYReproducir(autostart = true, indiceForzado = null) {
+    let estado;
+    let pistaGuardada = localStorage.getItem('fm_feeling_pista');
+    let tiempoGuardado = localStorage.getItem('fm_feeling_tiempo');
+    let timestampGuardado = localStorage.getItem('fm_feeling_timestamp');
+    let ahora = Date.now();
 
-        if (indiceForzado !== null) {
-            estado = {
-                index: indiceForzado >= playlistGlobal.length ? 0 : indiceForzado,
-                seek: 0
-            };
-        } else {
-            estado = calcularPistaActualPorReloj();
-        }
-
-        indicePistaActual = estado.index;
-        const nuevaFuente = playlistGlobal[indicePistaActual];
-
-        if (!nuevaFuente) {
-            console.error("No se encontró la pista:", indicePistaActual);
-            return;
-        }
-
-        audio.src = nuevaFuente;
-
-        audio.onloadedmetadata = () => {
-            try {
-                audio.currentTime = 0;
-            } catch (e) {
-                console.log("No se pudo establecer el inicio de la pista:", e);
-            }
-
-            if (autostart) {
-                audio.play().then(() => {
-                    activarInterfazReproduccion();
-                }).catch(err => {
-                    console.log("Bloqueado por navegador:", err);
-                });
-            }
-        };
+    if (indiceForzado !== null) {
+        estado = { index: indiceForzado, seek: 0 };
+    } else if (pistaGuardada !== null && timestampGuardado !== null && (ahora - timestampGuardado < 10 * 60 * 1000)) {
+        let segundosTranscurridos = Math.floor((ahora - timestampGuardado) / 1000);
+        let nuevoTiempo = parseFloat(tiempoGuardado) + segundosTranscurridos;
+        estado = { index: parseInt(pistaGuardada), seek: nuevoTiempo };
+    } else {
+        estado = calcularPistaActualPorReloj();
     }
+
+    indicePistaActual = estado.index;
+    const nuevaFuente = playlistGlobal[indicePistaActual];
+
+    if (!nuevaFuente) return;
+
+    audio.src = nuevaFuente;
+
+    audio.onloadedmetadata = () => {
+        try {
+            audio.currentTime = estado.seek || 0;
+        } catch (e) {
+            audio.currentTime = 0;
+        }
+
+        if (autostart) {
+            audio.play().then(() => {
+                activarInterfazReproduccion();
+            }).catch(err => {
+                console.log("Bloqueado por navegador:", err);
+            });
+        }
+    };
+}
+
+// Guardar el estado actual cada 5 segundos
+setInterval(() => {
+    if (!audio.paused && audio.src) {
+        localStorage.setItem('fm_feeling_pista', indicePistaActual);
+        localStorage.setItem('fm_feeling_tiempo', audio.currentTime);
+        localStorage.setItem('fm_feeling_timestamp', Date.now());
+    }
+}, 5000);
 
     // ============================================================
     // EVENTO CUANDO TERMINA UNA PISTA
