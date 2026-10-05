@@ -823,35 +823,38 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
-        if (audio) {
-            audio.volume = 0.8;
-            audio.play().then(() => {
-                activarInterfazReproduccion();
-                if (trackTitle) trackTitle.innerText = "Transmisión en directo";
-            }).catch(e => {
-                console.log("Autoplay bloqueado por el navegador:", e);
-                desactivarInterfazReproduccion();
-            });
+    if (audio) {
+        audio.volume = 0.8;
+        // No llamamos a audio.play() aquí para evitar restricciones del navegador.
+        // Lo dejamos preparado con la fuente de audio cargada pero pausado.
+        desactivarInterfazReproduccion();
+        if (trackTitle) trackTitle.innerText = "Presioná Play para comenzar";
 
-            audio.addEventListener('ended', () => {
-                currentTrackIndex = (currentTrackIndex + 1) % playlistRandom.length;
-                audio.src = playlistRandom[currentTrackIndex];
-                audio.play().catch(err => console.log("Error al reproducir pista:", err));
-            });
-        }
+        audio.addEventListener('ended', () => {
+            currentTrackIndex = (currentTrackIndex + 1) % playlistRandom.length;
+            audio.src = playlistRandom[currentTrackIndex];
+            audio.play().catch(err => console.log("Error al reproducir pista:", err));
+        });
+    }
 
-        if (playBtn) {
-            playBtn.addEventListener('click', () => {
-                if (audio.paused) {
-                    audio.play();
+    if (playBtn) {
+        playBtn.addEventListener('click', () => {
+            if (audio.paused) {
+                audio.play().then(() => {
                     activarInterfazReproduccion();
-                } else {
-                    audio.pause();
-                    desactivarInterfazReproduccion();
-                }
-            });
-        }
+                    if (trackTitle) trackTitle.innerText = "Transmisión en directo";
+                }).catch(err => console.log("Error al reproducir:", err));
+            } else {
+                audio.pause();
+                desactivarInterfazReproduccion();
+            }
+        });
+    }
 
+    iniciarRelojRetro();
+    cargarClimaEnVivo();
+    cargarPanoramaNoticias();
+});
         iniciarRelojRetro();
         cargarClimaEnVivo();
         cargarPanoramaNoticias();
