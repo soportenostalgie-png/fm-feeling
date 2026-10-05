@@ -742,31 +742,233 @@
         "https://wqkwjohyqkdjrihnwlut.supabase.co/storage/v1/object/public/Musica/Feeling%201.m4a"
     ];
 
-    // Semilla fija diaria / Orden determinístico global para sincronizar servidores
-    function obtenerPlaylistSincronizada() {
-        let combinada = [];
-        let altArt = 0;
-        for (let i = 0; i < cancionesOriginales.length; i++) {
-            combinada.push(cancionesOriginales[i]);
-            if ((i + 1) % 3 === 0) {
-                combinada.push(artisticaOriginal[altArt % artisticaOriginal.length]);
-                altArt++;
-            }
+    // ============================================================
+// REPRODUCCIÓN TIPO VIVO - PLAYLIST SINCRONIZADA
+// ============================================================
+
+// Orden determinístico global para sincronizar todos los servidores
+function obtenerPlaylistSincronizada() {
+    let combinada = [];
+    let altArt = 0;
+
+    for (let i = 0; i < cancionesOriginales.length; i++) {
+        combinada.push(cancionesOriginales[i]);
+
+        if ((i + 1) % 3 === 0) {
+            combinada.push(
+                artisticaOriginal[altArt % artisticaOriginal.length]
+            );
+            altArt++;
         }
-        return combinada;
     }
 
-    const playlistGlobal = obtenerPlaylistSincronizada();
-    const DURACION_PROMEDIO_TEMA = 210; // 3.5 minutos estimados por pista en segundos para cálculo de slot vivo
+    return combinada;
+}
 
-    const audio = document.getElementById('audio-player');
-    const playBtn = document.getElementById('play-btn');
-    const cassetteVideo = document.getElementById('cassette-video');
-    const cassetteWindow = document.getElementById('cassette-window');
-    const trackTitle = document.getElementById('track-title');
-    const unmuteBanner = document.getElementById('unmute-banner');
+const playlistGlobal = obtenerPlaylistSincronizada();
 
-    function calcularPistaActualPorReloj() {
+// Duración de respaldo.
+// Solamente se utiliza si no se puede obtener la duración real.
+const DURACION_PROMEDIO_TEMA = 210;
+
+// Duraciones reales de las pistas
+let duracionesPlaylist = [];
+let playlistPreparada = false;
+
+// ============================================================
+// OBTENER DURACIONES REALES DE LA PLAYLIST
+// ============================================================
+
+async function cargarDuracionesPlaylist() {
+
+    if (playlistPreparada) return;
+
+    console.log(
+        "Preparando duración real de",
+        playlistGlobal.length,
+        "pistas..."
+    );
+
+    const promesas = playlistGlobal.map((url, index) => {
+
+        return new Promise(resolve => {
+
+            const audioTemp = new Audio();
+
+            let resuelto = false;
+
+            const finalizar = duracion => {
+
+                if (resuelto) return;
+
+                resuelto = true;
+
+                if (
+                    typeof duracion !== 'number' ||
+                    !isFinite(duracion) ||
+                    duracion <= 0
+                ) {
+                    duracion = DURACION_PROMEDIO_TEMA;
+                }
+
+                resolve(duracion);
+            };
+
+            audioTemp.preload = 'metadata';
+
+            audioTemp.addEventListener('loadedmetadata', () => {
+                finalizar(audioTemp.duration);
+            }, { once: true });
+
+            audioTemp.addEventListener('error', () => {
+                console.warn(
+                    "No se pudo obtener duración real de la pista:",
+                    index,
+                    url
+                );
+
+                finalizar(DURACION_PROMEDIO_TEMA);
+            }, { once: true });
+
+            // Seguridad: si una pista no responde,
+            // no dejamos bloqueada toda la reproducción.
+            setTimeout(() => {
+                if (!resuelto) {
+                    console.warn(
+                        "Timeout obteniendo duración de pista:",
+                        index
+                    );
+
+                    finalizar(DURACION_PROMEDIO_TEMA);
+                }
+            }, 10000);
+
+            audioTemp.src = url;
+            audioTemp.load();
+        });
+    });
+
+    duracionesPlaylist = await Promise.all(promesas);
+
+    playlistPreparada = true;
+
+    console.log(
+        "Playlist preparada correctamente.",
+        duracionesPlaylist
+    );
+}
+
+// ============================================================
+// ELEMENTOS DEL REPRODUCTOR
+// ============================================================
+
+const audio = document.getElementById('audio-player');
+const playBtn = document.getElementById('play-btn');
+const cassetteVideo = document.getElementById('cassette-video');
+const cassetteWindow = document.getElementById('cassette-window');
+const trackTitle = document.getElementById('track-title');
+const unmuteBanner = document.getElementById('unmute-banner');
+
+// ============================================================
+// CALCULAR PISTA ACTUAL SEGÚN EL RELOJ
+// ============================================================
+
+function calcularPistaActualPorReloj() {
+
+    // Segundos transcurridos desde medianoche
+    const segundosTotalesDia =
+        Math.floor(Date.now() / 1000) % 86400;
+
+    // Si todavía no tenemos las duraciones reales,
+    // usamos el cálculo anterior como respaldo.
+    if (
+        !duracionesPlaylist ||
+        duracionesPlaylist.length !== playlistGlobal.length
+    ) {
+
+        const duracionTotalMix =
+            playlistGlobal.length * DURACION_PROMEDIO_TEMA;
+
+        const segundoEnCiclo =
+            segundosTotalesDia % duracionTotalMix;
+
+        let acumulado = 0;
+
+        for (let i = 0; i < playlistGlobal.length; i++) {
+
+            acumulado += DURACION_PROMEDIO_TEMA;
+
+            if (segundoEnCiclo < acumulado) {
+
+                const desplazamientoEnTema =
+                    segundoEnCiclo -
+                    (acumulado - DURACION_PROMEDIO_TEMA);
+
+                return {
+                    index: i,
+                    seek: Math.max(0, desplazamientoEnTema)
+                };
+            }
+        }
+
+        return {
+            index: 0,
+            seek: 0
+        };
+    }
+
+    // ========================================================
+    // CÁLCULO CON DURACIONES REALES
+    // ========================================================
+
+    const duracionTotalMix =
+        duracionesPlaylist.reduce(
+            (total, duracion) => total + duracion,
+            0
+        );
+
+    if (
+        !isFinite(duracionTotalMix) ||
+        duracionTotalMix <= 0
+    ) {
+        return {
+            index: 0,
+            seek: 0
+        };
+    }
+
+    const segundoEnCiclo =
+        segundosTotalesDia % duracionTotalMix;
+
+    let acumulado = 0;
+
+    for (let i = 0; i < playlistGlobal.length; i++) {
+
+        const duracionActual =
+            duracionesPlaylist[i] || DURACION_PROMEDIO_TEMA;
+
+        acumulado += duracionActual;
+
+        if (segundoEnCiclo < acumulado) {
+
+            const inicioDePista =
+                acumulado - duracionActual;
+
+            const desplazamientoEnTema =
+                segundoEnCiclo - inicioDePista;
+
+            return {
+                index: i,
+                seek: Math.max(0, desplazamientoEnTema)
+            };
+        }
+    }
+
+    return {
+        index: 0,
+        seek: 0
+    };
+}
         const segundosTotalesDia = Math.floor(Date.now() / 1000) % 86400;
         const duracionTotalMix = playlistGlobal.length * DURACION_PROMEDIO_TEMA;
         const segundoEnCiclo = segundosTotalesDia % duracionTotalMix;
