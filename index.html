@@ -742,561 +742,192 @@
         "https://wqkwjohyqkdjrihnwlut.supabase.co/storage/v1/object/public/Musica/Feeling%201.m4a"
     ];
 
-```javascript
-// ============================================================
-// SEMILLA FIJA DIARIA / ORDEN DETERMINÍSTICO GLOBAL
-// ============================================================
+    // ============================================================
+    // CREAR PLAYLIST COMBINADA (MÚSICA + ARTÍSTICA)
+    // ============================================================
+    function obtenerPlaylistSincronizada() {
+        let combinada = [];
+        let altArt = 0;
 
-function obtenerPlaylistSincronizada() {
+        for (let i = 0; i < cancionesOriginales.length; i++) {
+            combinada.push(cancionesOriginales[i]);
 
-    let combinada = [];
-    let altArt = 0;
-
-    for (let i = 0; i < cancionesOriginales.length; i++) {
-
-        combinada.push(cancionesOriginales[i]);
-
-        // Cada 3 canciones entra una artística
-        if ((i + 1) % 3 === 0) {
-
-            combinada.push(
-                artisticaOriginal[
-                    altArt % artisticaOriginal.length
-                ]
-            );
-
-            altArt++;
+            // Cada 3 canciones entra una pieza artística
+            if ((i + 1) % 3 === 0) {
+                combinada.push(artisticaOriginal[altArt % artisticaOriginal.length]);
+                altArt++;
+            }
         }
+        return combinada;
     }
 
-    return combinada;
-}
+    const playlistGlobal = obtenerPlaylistSincronizada();
+    const DURACION_PROMEDIO_TEMA = 210;
 
+    // ============================================================
+    // ELEMENTOS DEL REPRODUCTOR
+    // ============================================================
+    const audio = document.getElementById('audio-player');
+    const playBtn = document.getElementById('play-btn');
+    const cassetteVideo = document.getElementById('cassette-video');
+    const cassetteWindow = document.getElementById('cassette-window');
+    const trackTitle = document.getElementById('track-title');
+    const unmuteBanner = document.getElementById('unmute-banner');
 
-const playlistGlobal =
-    obtenerPlaylistSincronizada();
+    let indicePistaActual = 0;
 
+    // ============================================================
+    // CÁLCULO DE LA PISTA ACTUAL SEGÚN LA HORA DEL DÍA
+    // ============================================================
+    function calcularPistaActualPorReloj() {
+        const segundosTotalesDia = Math.floor(Date.now() / 1000) % 86400;
+        const duracionTotalMix = playlistGlobal.length * DURACION_PROMEDIO_TEMA;
+        const segundoEnCiclo = segundosTotalesDia % duracionTotalMix;
+        const indice = Math.floor(segundoEnCiclo / DURACION_PROMEDIO_TEMA);
 
-// ============================================================
-// DURACIÓN DE REFERENCIA
-// ============================================================
-
-const DURACION_PROMEDIO_TEMA = 210;
-
-
-// ============================================================
-// ELEMENTOS DEL REPRODUCTOR
-// ============================================================
-
-const audio =
-    document.getElementById('audio-player');
-
-const playBtn =
-    document.getElementById('play-btn');
-
-const cassetteVideo =
-    document.getElementById('cassette-video');
-
-const cassetteWindow =
-    document.getElementById('cassette-window');
-
-const trackTitle =
-    document.getElementById('track-title');
-
-const unmuteBanner =
-    document.getElementById('unmute-banner');
-
-
-// ============================================================
-// ÍNDICE DE LA PISTA QUE ESTÁ SONANDO
-// ============================================================
-
-let indicePistaActual = 0;
-
-
-// ============================================================
-// SABER SI UNA PISTA ES ARTÍSTICA
-// ============================================================
-
-function esPiezaArtistica(index) {
-
-    /*
-     * Playlist:
-     *
-     * 0 canción
-     * 1 canción
-     * 2 canción
-     * 3 artística
-     * 4 canción
-     * 5 canción
-     * 6 canción
-     * 7 artística
-     *
-     */
-
-    return (
-        index >= 3 &&
-        (index - 3) % 4 === 0 &&
-        index < playlistGlobal.length
-    );
-}
-
-
-// ============================================================
-// DETERMINAR QUÉ PISTA CORRESPONDE AL RELOJ
-// ============================================================
-
-function calcularPistaActualPorReloj() {
-
-    const segundosTotalesDia =
-        Math.floor(Date.now() / 1000) % 86400;
-
-    /*
-     * IMPORTANTE:
-     *
-     * Seguimos utilizando los 210 segundos solamente para
-     * determinar QUÉ ELEMENTO de la playlist corresponde.
-     *
-     * NO utilizamos ese cálculo para hacer seek dentro
-     * de la canción.
-     *
-     * Por eso el tema NO arrancará varios segundos adelantado.
-     */
-
-    const duracionTotalMix =
-        playlistGlobal.length *
-        DURACION_PROMEDIO_TEMA;
-
-    const segundoEnCiclo =
-        segundosTotalesDia %
-        duracionTotalMix;
-
-    const indice =
-        Math.floor(
-            segundoEnCiclo /
-            DURACION_PROMEDIO_TEMA
-        );
-
-    return {
-        index:
-            Math.min(
-                indice,
-                playlistGlobal.length - 1
-            ),
-
-        seek: 0
-    };
-}
-
-
-// ============================================================
-// CARGAR UNA PISTA
-// ============================================================
-
-function sincronizarYReproducir(
-    autostart = true,
-    indiceForzado = null
-) {
-
-    let estado;
-
-    /*
-     * Si se indicó una pista concreta, la usamos.
-     *
-     * Esto ocurre cuando termina una canción y tenemos que
-     * pasar a la siguiente.
-     */
-
-    if (indiceForzado !== null) {
-
-        estado = {
-            index:
-                indiceForzado >= playlistGlobal.length
-                    ? 0
-                    : indiceForzado,
-
+        return {
+            index: Math.min(indice, playlistGlobal.length - 1),
             seek: 0
         };
-
-    } else {
-
-        estado =
-            calcularPistaActualPorReloj();
     }
 
-
-    indicePistaActual =
-        estado.index;
-
-
-    const nuevaFuente =
-        playlistGlobal[indicePistaActual];
-
-
-    if (!nuevaFuente) {
-
-        console.error(
-            "No se encontró la pista:",
-            indicePistaActual
-        );
-
-        return;
-    }
-
-
-    /*
-     * Cargamos la nueva fuente.
-     */
-
-    audio.src = nuevaFuente;
-
-
-    /*
-     * Cuando el navegador conoce los metadatos,
-     * comenzamos SIEMPRE desde 0.
-     *
-     * Esto elimina el problema de que una canción
-     * aparezca comenzada.
-     */
-
-    audio.onloadedmetadata = () => {
-
-        try {
-
-            audio.currentTime = 0;
-
-        } catch (e) {
-
-            console.log(
-                "No se pudo establecer el inicio de la pista:",
-                e
-            );
-
-        }
-
-
-        if (autostart) {
-
-            audio.play()
-                .then(() => {
-
-                    activarInterfazReproduccion();
-
-                })
-                .catch(err => {
-
-                    console.log(
-                        "Bloqueado por navegador:",
-                        err
-                    );
-
-                });
-        }
-    };
-}
-
-
-// ============================================================
-// CUANDO TERMINA UNA PISTA
-// ============================================================
-
-audio.addEventListener('ended', () => {
-
-    /*
-     * NO volvemos a consultar el reloj.
-     *
-     * Avanzamos simplemente al siguiente elemento.
-     *
-     * Esto es lo que evita que los separadores cortos
-     * vuelvan a seleccionarse y queden en loop.
-     */
-
-    let siguienteIndice =
-        indicePistaActual + 1;
-
-
-    if (
-        siguienteIndice >=
-        playlistGlobal.length
-    ) {
-
-        siguienteIndice = 0;
-    }
-
-
-    sincronizarYReproducir(
-        true,
-        siguienteIndice
-    );
-});
-
-
-// ============================================================
-// ACTIVAR SONIDO AL AIRE
-// ============================================================
-
-function activarSonidoAlAire() {
-
-    audio.muted = false;
-
-
-    if (unmuteBanner) {
-
-        unmuteBanner.style.transform =
-            "translateY(-100%)";
-
-        setTimeout(() => {
-
-            try {
-                unmuteBanner.remove();
-            } catch (e) {}
-
-        }, 300);
-    }
-
-
-    /*
-     * Si ya tenemos una pista cargada, simplemente
-     * continuamos esa transmisión.
-     *
-     * No la volvemos a comenzar.
-     */
-
-    if (
-        audio.src &&
-        audio.readyState >= 1
-    ) {
-
-        audio.play()
-            .then(() => {
-
-                activarInterfazReproduccion();
-
-            })
-            .catch(err => {
-
-                console.log(
-                    "Bloqueado por navegador:",
-                    err
-                );
-
-            });
-
-    } else {
-
-        sincronizarYReproducir(true);
-    }
-}
-
-
-// ============================================================
-// BOTÓN PLAY / PAUSA
-// ============================================================
-
-function togglePlay() {
-
-    if (audio.muted) {
-
-        audio.muted = false;
-
-        if (unmuteBanner) {
-            unmuteBanner.remove();
-        }
-    }
-
-
-    if (audio.paused) {
-
-        /*
-         * Si ya existe una pista cargada, continuamos
-         * exactamente donde estaba.
-         */
-
-        if (
-            audio.src &&
-            audio.readyState >= 1
-        ) {
-
-            audio.play()
-                .then(() => {
-
-                    activarInterfazReproduccion();
-
-                })
-                .catch(() => {
-
-                    sincronizarYReproducir(true);
-
-                });
-
+    // ============================================================
+    // CARGAR Y SINCRONIZAR PISTA
+    // ============================================================
+    function sincronizarYReproducir(autostart = true, indiceForzado = null) {
+        let estado;
+
+        if (indiceForzado !== null) {
+            estado = {
+                index: indiceForzado >= playlistGlobal.length ? 0 : indiceForzado,
+                seek: 0
+            };
         } else {
-
-            sincronizarYReproducir(true);
+            estado = calcularPistaActualPorReloj();
         }
 
-    } else {
+        indicePistaActual = estado.index;
+        const nuevaFuente = playlistGlobal[indicePistaActual];
 
-        audio.pause();
-
-        desactivarInterfazReproduccion();
-    }
-}
-
-
-// ============================================================
-// INTERFAZ: REPRODUCIENDO
-// ============================================================
-
-function activarInterfazReproduccion() {
-
-    playBtn.innerHTML =
-        '<i class="fas fa-pause"></i> Pausar Transmisión';
-
-    cassetteWindow.classList.add(
-        'playing-light'
-    );
-
-    trackTitle.innerText =
-        "Transmisión en directo (Sincronizada)";
-
-    if (cassetteVideo) {
-
-        cassetteVideo
-            .play()
-            .catch(() => {});
-    }
-}
-
-
-// ============================================================
-// INTERFAZ: PAUSADO
-// ============================================================
-
-function desactivarInterfazReproduccion() {
-
-    playBtn.innerHTML =
-        '<i class="fas fa-play"></i> Sintonizar al Aire';
-
-    cassetteWindow.classList.remove(
-        'playing-light'
-    );
-
-    trackTitle.innerText =
-        "Transmisión en pausa";
-
-    if (cassetteVideo) {
-
-        cassetteVideo.pause();
-    }
-}
-
-
-// ============================================================
-// VOLUMEN
-// ============================================================
-
-function changeVolume(val) {
-
-    audio.volume = val;
-
-    if (
-        val > 0 &&
-        audio.muted
-    ) {
-
-        audio.muted = false;
-
-        if (unmuteBanner) {
-            unmuteBanner.remove();
+        if (!nuevaFuente) {
+            console.error("No se encontró la pista:", indicePistaActual);
+            return;
         }
-    }
-}
-```
 
+        audio.src = nuevaFuente;
 
-    window.addEventListener('DOMContentLoaded', () => {
-        if (audio) {
-            audio.volume = 0.8;
-            sincronizarYReproducir(false);
-        }
-        iniciarRelojRetro();
-        cargarClimaOriginal();
-        cargarPanoramaInformativo();
-
-        // Actualizar únicamente clima y noticias.
-        // La reproducción sincronizada permanece intacta.
-        setInterval(cargarClimaOriginal, 10 * 60 * 1000);
-        setInterval(cargarPanoramaInformativo, 10 * 60 * 1000);
-    });
-
-    function sincronizarYReproducir(autostart = true) {
-        const estadoVivo = calcularPistaActualPorReloj();
-        audio.src = playlistGlobal[estadoVivo.index];
-        
         audio.onloadedmetadata = () => {
             try {
-                audio.currentTime = estadoVivo.seek % audio.duration;
-            } catch(e) {
-                console.log("Seek ajustado", e);
+                audio.currentTime = 0;
+            } catch (e) {
+                console.log("No se pudo establecer el inicio de la pista:", e);
             }
+
             if (autostart) {
                 audio.play().then(() => {
                     activarInterfazReproduccion();
-                }).catch(err => console.log("Bloqueado por navegador:", err));
+                }).catch(err => {
+                    console.log("Bloqueado por navegador:", err);
+                });
             }
         };
     }
 
-    // Avanzar automáticamente respetando el orden global
+    // ============================================================
+    // EVENTO CUANDO TERMINA UNA PISTA
+    // ============================================================
     audio.addEventListener('ended', () => {
-        sincronizarYReproducir(true);
+        let siguienteIndice = indicePistaActual + 1;
+        if (siguienteIndice >= playlistGlobal.length) {
+            siguienteIndice = 0;
+        }
+        sincronizarYReproducir(true, siguienteIndice);
     });
 
+    // ============================================================
+    // ACTIVAR SONIDO AL AIRE
+    // ============================================================
     function activarSonidoAlAire() {
         audio.muted = false;
-        if(unmuteBanner) {
+
+        if (unmuteBanner) {
             unmuteBanner.style.transform = "translateY(-100%)";
-            setTimeout(() => unmuteBanner.remove(), 300);
+            setTimeout(() => {
+                try { unmuteBanner.remove(); } catch (e) {}
+            }, 300);
         }
-        sincronizarYReproducir(true);
+
+        if (audio.src && audio.readyState >= 1) {
+            audio.play().then(() => {
+                activarInterfazReproduccion();
+            }).catch(err => {
+                console.log("Bloqueado por navegador:", err);
+            });
+        } else {
+            sincronizarYReproducir(true);
+        }
     }
 
+    // ============================================================
+    // BOTÓN PLAY / PAUSA
+    // ============================================================
     function togglePlay() {
         if (audio.muted) {
             audio.muted = false;
-            if(unmuteBanner) unmuteBanner.remove();
+            if (unmuteBanner) { unmuteBanner.remove(); }
         }
 
         if (audio.paused) {
-            sincronizarYReproducir(true);
+            if (audio.src && audio.readyState >= 1) {
+                audio.play().then(() => {
+                    activarInterfazReproduccion();
+                }).catch(() => {
+                    sincronizarYReproducir(true);
+                });
+            } else {
+                sincronizarYReproducir(true);
+            }
         } else {
             audio.pause();
             desactivarInterfazReproduccion();
         }
     }
 
+    // ============================================================
+    // INTERFAZ: ESTADOS DE REPRODUCCIÓN
+    // ============================================================
     function activarInterfazReproduccion() {
         playBtn.innerHTML = '<i class="fas fa-pause"></i> Pausar Transmisión';
         cassetteWindow.classList.add('playing-light');
         trackTitle.innerText = "Transmisión en directo (Sincronizada)";
-        if(cassetteVideo) cassetteVideo.play().catch(() => {});
+        if (cassetteVideo) {
+            cassetteVideo.play().catch(() => {});
+        }
     }
 
     function desactivarInterfazReproduccion() {
         playBtn.innerHTML = '<i class="fas fa-play"></i> Sintonizar al Aire';
         cassetteWindow.classList.remove('playing-light');
         trackTitle.innerText = "Transmisión en pausa";
-        if(cassetteVideo) cassetteVideo.pause();
-    }
-
-    function changeVolume(val) {
-        audio.volume = val;
-        if(val > 0 && audio.muted) {
-            audio.muted = false;
-            if(unmuteBanner) unmuteBanner.remove();
+        if (cassetteVideo) {
+            cassetteVideo.pause();
         }
     }
 
+    // ============================================================
+    // CONTROL DE VOLUMEN
+    // ============================================================
+    function changeVolume(val) {
+        audio.volume = val;
+        if (val > 0 && audio.muted) {
+            audio.muted = false;
+            if (unmuteBanner) { unmuteBanner.remove(); }
+        }
+    }
+
+    // ============================================================
+    // RELOJ RETRO 90S
+    // ============================================================
     function iniciarRelojRetro() {
         function actualizarReloj() {
             const ahora = new Date();
@@ -1318,21 +949,12 @@ function changeVolume(val) {
         actualizarReloj();
         setInterval(actualizarReloj, 1000);
     }
-        // ============================================================
-    // CLIMA EN VIVO
-    // ============================================================
 
     // ============================================================
     // CLIMA MUNDIAL - WEATHERAPI.COM
     // ============================================================
-    //
-    // IMPORTANTE:
-    // Colocar aquí la API KEY personal de WeatherAPI.
-    //
     const WEATHER_API_KEY = 'c52f6a69e4344ce0af720650260510';
 
-    // Ciudades que aparecerán en la rotación.
-    // Se pueden agregar o quitar sin modificar el resto del programa.
     const ciudadesClima = [
         { nombre: 'Buenos Aires', consulta: 'Buenos Aires, Argentina' },
         { nombre: 'Córdoba', consulta: 'Cordoba, Argentina' },
@@ -1341,7 +963,6 @@ function changeVolume(val) {
         { nombre: 'Mar del Plata', consulta: 'Mar del Plata, Argentina' },
         { nombre: 'Bariloche', consulta: 'San Carlos de Bariloche, Argentina' },
         { nombre: 'Ushuaia', consulta: 'Ushuaia, Argentina' },
-
         { nombre: 'Miami', consulta: 'Miami, Florida, USA' },
         { nombre: 'Nueva York', consulta: 'New York, USA' },
         { nombre: 'Los Ángeles', consulta: 'Los Angeles, California, USA' },
@@ -1349,82 +970,34 @@ function changeVolume(val) {
         { nombre: 'Río de Janeiro', consulta: 'Rio de Janeiro, Brazil' },
         { nombre: 'Santiago de Chile', consulta: 'Santiago, Chile' },
         { nombre: 'Bogotá', consulta: 'Bogota, Colombia' },
-
         { nombre: 'Madrid', consulta: 'Madrid, Spain' },
         { nombre: 'Barcelona', consulta: 'Barcelona, Spain' },
         { nombre: 'Londres', consulta: 'London, UK' },
         { nombre: 'París', consulta: 'Paris, France' },
         { nombre: 'Roma', consulta: 'Rome, Italy' },
         { nombre: 'Berlín', consulta: 'Berlin, Germany' },
-
         { nombre: 'Tokio', consulta: 'Tokyo, Japan' },
         { nombre: 'Sídney', consulta: 'Sydney, Australia' },
         { nombre: 'Dubái', consulta: 'Dubai, United Arab Emirates' },
         { nombre: 'Estambul', consulta: 'Istanbul, Turkey' }
     ];
 
-    // Aquí se guardan los datos recibidos.
-    // De esta manera NO hacemos una consulta a la API cada vez
-    // que cambia la ciudad en pantalla.
     let climaMundial = [];
-
     let indiceCiudadClima = 0;
-
-    // Intervalo de rotación visual.
-    // Cambia de ciudad sin realizar una nueva consulta.
     let intervaloRotacionClima = null;
 
-    // ============================================================
-    // OBTENER CLIMA DE TODAS LAS CIUDADES
-    // ============================================================
     async function cargarClimaOriginal() {
-
         const ticker = document.getElementById('ticker-track');
-
         if (!ticker) return;
 
-        if (
-            !WEATHER_API_KEY ||
-            WEATHER_API_KEY === 'PEGAR_AQUI_TU_API_KEY'
-        ) {
-            ticker.innerHTML = `
-                <span class="ticker-item">
-                    <span>CLIMA</span>:
-                    Falta configurar la API Key de WeatherAPI.com
-                </span>
-            `;
-            return;
-        }
-
         try {
-
             const resultados = await Promise.all(
                 ciudadesClima.map(async ciudad => {
-
                     try {
-
-                        const url =
-                            'https://api.weatherapi.com/v1/current.json' +
-                            '?key=' +
-                            encodeURIComponent(WEATHER_API_KEY) +
-                            '&q=' +
-                            encodeURIComponent(ciudad.consulta) +
-                            '&lang=es';
-
-                        const res = await fetch(url, {
-                            cache: 'no-store'
-                        });
-
-                        if (!res.ok) {
-                            throw new Error(`HTTP ${res.status}`);
-                        }
-
+                        const url = 'https://api.weatherapi.com/v1/current.json?key=' + encodeURIComponent(WEATHER_API_KEY) + '&q=' + encodeURIComponent(ciudad.consulta) + '&lang=es';
+                        const res = await fetch(url, { cache: 'no-store' });
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
                         const data = await res.json();
-
-                        if (!data.current || !data.location) {
-                            throw new Error('Datos meteorológicos incompletos');
-                        }
-
                         return {
                             nombre: ciudad.nombre,
                             temperatura: Math.round(data.current.temp_c),
@@ -1432,227 +1005,126 @@ function changeVolume(val) {
                             humedad: Math.round(data.current.humidity),
                             viento: Math.round(data.current.wind_kph),
                             condicion: data.current.condition.text,
-                            icono: data.current.condition.icon,
-                            pais: data.location.country,
-                            actualizado: data.current.last_updated
+                            icono: data.current.condition.icon
                         };
-
                     } catch (errorCiudad) {
-
-                        console.error(
-                            'Error obteniendo clima de:',
-                            ciudad.nombre,
-                            errorCiudad
-                        );
-
-                        return {
-                            nombre: ciudad.nombre,
-                            error: true
-                        };
+                        return { nombre: ciudad.nombre, error: true };
                     }
                 })
             );
 
             climaMundial = resultados.filter(ciudad => !ciudad.error);
+            if (!climaMundial.length) throw new Error('Sin datos');
 
-            if (!climaMundial.length) {
-                throw new Error('No se pudo obtener información meteorológica');
-            }
-
-            // Comenzar nuevamente desde Buenos Aires.
             indiceCiudadClima = 0;
-
             mostrarCiudadClima();
-
             iniciarRotacionClima();
-
         } catch (error) {
-
-            console.error('Error general de WeatherAPI:', error);
-
-            ticker.innerHTML = `
-                <span class="ticker-item">
-                    <span>CLIMA MUNDIAL</span>:
-                    Información meteorológica temporalmente no disponible.
-                    · Reintentando automáticamente...
-                </span>
-            `;
+            ticker.innerHTML = `<span class="ticker-item"><span>CLIMA</span>: Información meteorológica temporalmente no disponible.</span>`;
         }
     }
 
-
-    // ============================================================
-    // MOSTRAR CIUDAD ACTUAL
-    // ============================================================
     function mostrarCiudadClima() {
-
         const ticker = document.getElementById('ticker-track');
-
         if (!ticker || !climaMundial.length) return;
 
         const clima = climaMundial[indiceCiudadClima];
-
         if (!clima) return;
 
-        const icono = clima.icono
-            ? `https:${clima.icono}`
-            : '';
+        const icono = clima.icono ? `https:${clima.icono}` : '';
 
         ticker.innerHTML = `
             <span class="ticker-item clima-mundial-item">
-
                 <strong>🌎 ${clima.nombre.toUpperCase()}</strong>
-
-                ${icono
-                    ? `<img
-                        src="${icono}"
-                        alt="${clima.condicion}"
-                        style="
-                            width:28px;
-                            height:28px;
-                            vertical-align:middle;
-                            margin:0 5px;
-                        "
-                    >`
-                    : ''
-                }
-
-                <span>
-                    ${clima.temperatura}°C
-                </span>
-
+                ${icono ? `<img src="${icono}" alt="${clima.condicion}" style="width:28px;height:28px;vertical-align:middle;margin:0 5px;">` : ''}
+                <span>${clima.temperatura}°C</span>
                 · ${clima.condicion}
-
                 · Sensación ${clima.sensacion}°C
-
                 · Humedad ${clima.humedad}%
-
                 · Viento ${clima.viento} km/h
-
                 · <small>WeatherAPI.com</small>
-
             </span>
         `;
     }
 
-
-    // ============================================================
-    // ROTACIÓN DE CIUDADES
-    // ============================================================
     function iniciarRotacionClima() {
-
-        if (intervaloRotacionClima) {
-            clearInterval(intervaloRotacionClima);
-        }
-
-        // Cambiar de ciudad cada 12 segundos.
+        if (intervaloRotacionClima) clearInterval(intervaloRotacionClima);
         intervaloRotacionClima = setInterval(() => {
-
             if (!climaMundial.length) return;
-
-            indiceCiudadClima++;
-
-            if (indiceCiudadClima >= climaMundial.length) {
-                indiceCiudadClima = 0;
-            }
-
+            indiceCiudadClima = (indiceCiudadClima + 1) % climaMundial.length;
             mostrarCiudadClima();
-
         }, 12000);
     }
 
-
+    // ============================================================
+    // PANORAMA DE NOTICIAS
+    // ============================================================
     async function cargarPanoramaInformativo() {
         const newsTrack = document.getElementById('news-track');
         if (!newsTrack) return;
 
-        const rssUrl =
-            'https://news.google.com/rss/search?q=Argentina&hl=es-419&gl=AR&ceid=AR:es-419';
-
-        const proxyUrl =
-            'https://api.rss2json.com/v1/api.json?rss_url=' +
-            encodeURIComponent(rssUrl);
+        const rssUrl = 'https://news.google.com/rss/search?q=Argentina&hl=es-419&gl=AR&ceid=AR:es-419';
+        const proxyUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(rssUrl);
 
         try {
             const res = await fetch(proxyUrl, { cache: 'no-store' });
-
-            if (!res.ok) {
-                throw new Error(`HTTP ${res.status}`);
-            }
-
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
+            if (!data.items || !data.items.length) throw new Error('Sin titulares');
 
-            if (!data.items || !data.items.length) {
-                throw new Error('No se recibieron titulares');
-            }
-
-            const titulares = data.items
-                .slice(0, 8)
-                .map(item => {
-                    const titulo = (item.title || 'Sin título')
-                        .replace(/&amp;/g, '&')
-                        .replace(/<[^>]*>/g, '')
-                        .trim();
-
-                    return `
-                        <span class="news-item">
-                            <span>ÚLTIMA HORA</span>: ${titulo}
-                        </span>
-                    `;
-                })
-                .join('');
+            const titulares = data.items.slice(0, 8).map(item => {
+                const titulo = (item.title || 'Sin título').replace(/&amp;/g, '&').replace(/<[^>]*>/g, '').trim();
+                return `<span class="news-item"><span>ÚLTIMA HORA</span>: ${titulo}</span>`;
+            }).join('');
 
             newsTrack.innerHTML = titulares;
-
         } catch (e) {
-
-            console.error('Error obteniendo noticias:', e);
-
-            newsTrack.innerHTML = `
-                <span class="news-item">
-                    <span>PANORAMA DE NOTICIAS</span>:
-                    No se pudieron actualizar los titulares en este momento.
-                    · Reintentando automáticamente...
-                </span>
-            `;
+            newsTrack.innerHTML = `<span class="news-item"><span>PANORAMA DE NOTICIAS</span>: No se pudieron actualizar los titulares en este momento.</span>`;
         }
     }
 
-
+    // ============================================================
+    // CONTROL DE MODALES Y LIGHTBOX
+    // ============================================================
     function abrirSeccion(tipo) {
-
         cerrarSecciones();
-
-        if(tipo === 'eventos') {
+        if (tipo === 'eventos') {
             document.getElementById('modal-eventos').style.display = 'flex';
-
-        } else if(tipo === 'apoyan') {
+        } else if (tipo === 'apoyan') {
             document.getElementById('modal-apoyan').style.display = 'flex';
         }
     }
 
-
     function cerrarSecciones() {
-
         document.getElementById('modal-eventos').style.display = 'none';
         document.getElementById('modal-apoyan').style.display = 'none';
         document.getElementById('lightbox').style.display = 'none';
     }
 
-
     function verImagenGrande(src) {
-
         document.getElementById('lightbox-img').src = src;
         document.getElementById('lightbox').style.display = 'flex';
     }
 
-
     function cerrarImagenGrande() {
-
         document.getElementById('lightbox').style.display = 'none';
     }
 
+    // ============================================================
+    // INICIALIZACIÓN GENERAL AL CARGAR LA PÁGINA
+    // ============================================================
+    window.addEventListener('DOMContentLoaded', () => {
+        if (audio) {
+            audio.volume = 0.8;
+            sincronizarYReproducir(false);
+        }
+        iniciarRelojRetro();
+        cargarClimaOriginal();
+        cargarPanoramaInformativo();
+
+        setInterval(cargarClimaOriginal, 10 * 60 * 1000);
+        setInterval(cargarPanoramaInformativo, 10 * 60 * 1000);
+    });
 </script>
 </body>
 </html>
-  
