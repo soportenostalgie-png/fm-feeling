@@ -886,10 +886,10 @@
         actualizarReloj();
         setInterval(actualizarReloj, 1000);
     }
-    // ============================================================
+     // ============================================================
     // CLIMA EN VIVO
     // ============================================================
-```javascript
+
     // ============================================================
     // CLIMA MUNDIAL - WEATHERAPI.COM
     // ============================================================
@@ -1128,7 +1128,7 @@
 
         }, 12000);
     }
-```
+
 
     async function cargarPanoramaInformativo() {
         const newsTrack = document.getElementById('news-track');
@@ -1171,7 +1171,9 @@
                 .join('');
 
             newsTrack.innerHTML = titulares;
+
         } catch (e) {
+
             console.error('Error obteniendo noticias:', e);
 
             newsTrack.innerHTML = `
@@ -1184,27 +1186,37 @@
         }
     }
 
+
     function abrirSeccion(tipo) {
+
         cerrarSecciones();
+
         if(tipo === 'eventos') {
             document.getElementById('modal-eventos').style.display = 'flex';
+
         } else if(tipo === 'apoyan') {
             document.getElementById('modal-apoyan').style.display = 'flex';
         }
     }
 
+
     function cerrarSecciones() {
+
         document.getElementById('modal-eventos').style.display = 'none';
         document.getElementById('modal-apoyan').style.display = 'none';
         document.getElementById('lightbox').style.display = 'none';
     }
 
+
     function verImagenGrande(src) {
+
         document.getElementById('lightbox-img').src = src;
         document.getElementById('lightbox').style.display = 'flex';
     }
 
+
     function cerrarImagenGrande() {
+
         document.getElementById('lightbox').style.display = 'none';
     }
 
