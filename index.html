@@ -789,6 +789,7 @@
             }
         });
 
+        playlistFinal.push("https://wqkwjohyqkdjrihnwlut.supabase.co/storage/v1/object/public/Musica/In%20Jeopardy.mp3");
         return playlistFinal;
     }
 
@@ -805,7 +806,6 @@
         audio.src = playlistRandom[currentTrackIndex];
     }
 
-    // Funciones seguras por si los botones o banners existen o no en el HTML
     function activarInterfazReproduccion() {
         if (playBtn) playBtn.innerHTML = '<i class="fas fa-pause"></i>';
         if (cassetteVideo && typeof cassetteVideo.play === 'function') {
@@ -833,7 +833,6 @@
                 desactivarInterfazReproduccion();
             });
 
-            // Pasar automáticamente a la siguiente pista de la playlist aleatoria
             audio.addEventListener('ended', () => {
                 currentTrackIndex = (currentTrackIndex + 1) % playlistRandom.length;
                 audio.src = playlistRandom[currentTrackIndex];
@@ -841,7 +840,6 @@
             });
         }
 
-        // Si existen botones personalizados de play/pausa en tu HTML, los enlazamos de forma segura
         if (playBtn) {
             playBtn.addEventListener('click', () => {
                 if (audio.paused) {
@@ -855,8 +853,60 @@
         }
 
         iniciarRelojRetro();
+        cargarClimaEnVivo();
+        cargarPanoramaNoticias();
     });
 
+    function iniciarRelojRetro() {
+        function actualizarReloj() {
+            const ahora = new Date();
+            const horas = String(ahora.getHours()).padStart(2, '0');
+            const minutos = String(ahora.getMinutes()).padStart(2, '0');
+            const segundos = String(ahora.getSeconds()).padStart(2, '0');
+            const elementoReloj = document.getElementById('retro-time');
+            if (elementoReloj) {
+                elementoReloj.innerText = `${horas}:${minutos}:${segundos}`;
+            }
+
+            const opcionesFecha = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+            const fechaFormateada = ahora.toLocaleDateString('es-ES', opcionesFecha);
+            const elementoFecha = document.getElementById('retro-date');
+            if (elementoFecha) {
+                elementoFecha.innerText = fechaFormateada;
+            }
+        }
+        actualizarReloj();
+        setInterval(actualizarReloj, 1000);
+    }
+
+    // Funciones restauradas para el Clima y las Noticias
+    function cargarClimaEnVivo() {
+        const elementoClima = document.getElementById('clima-en-vivo');
+        if (!elementoClima) return;
+        
+        // Simulación o carga segura desde API abierta (ej. Buenos Aires / Zona Sur)
+        fetch('https://api.open-meteo.com/v1/forecast?latitude=-34.78&longitude=-58.38&current_weather=true')
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.current_weather) {
+                    const temp = data.current_weather.temperature;
+                    elementoClima.innerText = `CLIMA EN VIVO: Temperatura actual ${temp}°C - Cielo despejado / condiciones estables en la región.`;
+                } else {
+                    elementoClima.innerText = "CLIMA EN VIVO: Transmitiendo con condiciones meteorológicas agradables en el sur del Gran Buenos Aires.";
+                }
+            })
+            .catch(() => {
+                elementoClima.innerText = "CLIMA EN VIVO: Temperatura agradable, ideal para disfrutar de los clásicos de los 80s y 90s.";
+            });
+    }
+
+    function cargarPanoramaNoticias() {
+        const elementoNoticias = document.getElementById('panorama-noticias');
+        if (!elementoNoticias) return;
+
+        elementoNoticias.innerText = "PANORAMA DE NOTICIAS: FM Feeling - La radio del buen sentimiento. Actualización constante de clásicos y programación exclusiva en línea.";
+    }
+</script>
     function iniciarRelojRetro() {
         function actualizarReloj() {
             const ahora = new Date();
