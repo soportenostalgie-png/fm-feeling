@@ -515,6 +515,11 @@
             <div class="news-track" id="news-track">
                 <span class="news-item"><span>PANORAMA DE NOTICIAS</span>: Obteniendo información general...</span>
             </div>
+            <div class="news-ticker-container">
+      <div class="news-track" id="finanzas-track">
+        <span class="news-item"><span>FINANZAS EN VIVO:</span> Cargando indicadores económicos...</span>
+      </div>
+    </div>
         </div>
     </div>
 
@@ -1149,7 +1154,52 @@ setInterval(() => {
             newsTrack.innerHTML = `<span class="news-item"><span>PANORAMA DE NOTICIAS</span>: No se pudieron actualizar los titulares en este momento.</span>`;
         }
     }
+// -------------------------------------------------------------------------
+// PASARELA DE FINANZAS EN VIVO (DÓLAR, EURO, REAL)
+// -------------------------------------------------------------------------
+async function cargarIndicadoresFinancieros() {
+  const finanzasTrack = document.getElementById('finanzas-track');
+  if (!finanzasTrack) return;
 
+  try {
+    const [resDolares, resEuro, resReal] = await Promise.all([
+      fetch('https://dolarapi.com/v1/dolares'),
+      fetch('https://dolarapi.com/v1/cotizaciones/eur'),
+      fetch('https://dolarapi.com/v1/cotizaciones/brl')
+    ]);
+
+    const dolares = await resDolares.json();
+    const euro = await resEuro.json();
+    const real = await resReal.json();
+
+    const blue = dolares.find(d => d.casa === 'blue');
+    const oficial = dolares.find(d => d.casa === 'oficial');
+    const mep = dolares.find(d => d.casa === 'bolsa');
+
+    const textoFinanzas = `
+      <span class="news-item">
+        <span>FINANZAS EN VIVO:</span> 
+        💵 <b>DÓLAR BLUE:</b> Compra $${blue.compra} — Venta $${blue.venta} &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; 
+        🏦 <b>DÓLAR OFICIAL:</b> Venta $${oficial.venta} &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; 
+        📈 <b>DÓLAR MEP:</b> $${mep.venta} &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; 
+        💶 <b>EURO:</b> Venta $${euro.venta} &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; 
+        🇧🇷 <b>REAL:</b> Venta $${real.venta}
+      </span>
+    `;
+
+    finanzasTrack.innerHTML = textoFinanzas;
+
+  } catch (error) {
+    console.error("Error al actualizar las finanzas:", error);
+    finanzasTrack.innerHTML = `<span class="news-item"><span>FINANZAS EN VIVO:</span> Cotizaciones no disponibles temporalmente.</span>`;
+  }
+}
+
+// Ejecutar al iniciar
+cargarIndicadoresFinancieros();
+
+// Actualizar cada 15 minutos
+setInterval(cargarIndicadoresFinancieros, 900000);
     // ============================================================
     // CONTROL DE MODALES Y LIGHTBOX
     // ============================================================
