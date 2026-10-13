@@ -1176,9 +1176,15 @@ async function cargarIndicadoresFinancieros() {
     const oficial = dolares.find(d => d.casa === 'oficial');
     const mep = dolares.find(d => d.casa === 'bolsa');
 
-    const textoFinanzas = `
+   const textoFinanzas = `
       <span class="news-item">
         <span>FINANZAS EN VIVO:</span> 
+        💵 <b>DÓLAR BLUE:</b> Compra $${blue.compra} — Venta $${blue.venta} &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; 
+        🏦 <b>DÓLAR OFICIAL:</b> Venta $${oficial.venta} &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; 
+        📈 <b>DÓLAR MEP:</b> $${mep.venta} &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; 
+        💶 <b>EURO:</b> Venta $${euro.venta} &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; 
+        🇧🇷 <b>REAL:</b> Venta $${real.venta} 
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         💵 <b>DÓLAR BLUE:</b> Compra $${blue.compra} — Venta $${blue.venta} &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; 
         🏦 <b>DÓLAR OFICIAL:</b> Venta $${oficial.venta} &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; 
         📈 <b>DÓLAR MEP:</b> $${mep.venta} &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; 
