@@ -18,8 +18,8 @@ window.addEventListener('beforeinstallprompt', (e) => {
 // 3. SISTEMA DE SALUDOS EN VIVO (SUPABASE)
 // ==========================================
 
-const SUPABASE_URL = 'https://wqkwjohykqdjrihnwlut.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_4p84L_X_gJZ2Rac1qDWnnA_A-Z40xsR';
+const SUPABASE_URL = "https://wqkwjohykqdjrihnwlut.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_4p84L_X_gJZ2Rac1qDWnnA_A-Z40xsR";
 
 // Enviar el saludo a la base de datos
 async function enviarSaludo(event) {
