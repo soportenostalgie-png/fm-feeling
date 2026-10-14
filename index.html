@@ -1270,6 +1270,50 @@ setInterval(cargarIndicadoresFinancieros, 900000);
         setInterval(cargarClimaOriginal, 10 * 60 * 1000);
         setInterval(cargarPanoramaInformativo, 10 * 60 * 1000);
     });
+    <script>
+// ==========================================
+// SISTEMA DE SALUDOS EN VIVO (SUPABASE)
+// ==========================================
+const SUPABASE_URL = 'https://wqkwjohykqdjrihnwlut.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_4p84L_X_gJZ2Rac1qDWnnA_A-Z40xsR';
+
+async function enviarSaludo(event) {
+  event.preventDefault();
+  
+  const nombre = document.getElementById('nombre-oyente').value;
+  const ciudad = document.getElementById('ciudad-oyente').value;
+  const mensaje = document.getElementById('mensaje-oyente').value;
+  const estado = document.getElementById('estado-envio');
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/saludos`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ nombre, ciudad, mensaje })
+    });
+
+    if (res.ok) {
+      estado.style.color = "#00ff66";
+      estado.innerText = "¡Gracias! Tu saludo fue enviado con éxito.";
+      document.getElementById('form-saludo').reset();
+      setTimeout(() => {
+        document.getElementById('modal-saludos').style.display = 'none';
+        estado.innerText = "";
+      }, 2000);
+    } else {
+      throw new Error('Error al enviar');
+    }
+  } catch (e) {
+    estado.style.color = "#ff3300";
+    estado.innerText = "Hubo un error al enviar el saludo. Intentá de nuevo.";
+  }
+}
+</script>
 </script>
 </body>
 </html>
