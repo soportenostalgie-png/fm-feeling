@@ -473,7 +473,7 @@
                 <a onclick="cerrarSecciones()">Inicio</a>
                 <a onclick="abrirSeccion('eventos')">Eventos</a>
                 <a onclick="abrirSeccion('apoyan')">Apoyan este sentimiento</a>
-                <a onclick="abrirSeccion('modal-saludos')">💬 Saludos en Vivo</a>
+                <a onclick="document.getElementById('modal-saludos').style.display='block'">💬 Saludos en Vivo</a>
             </nav>
             <!-- RELOJ DIGITAL FÓSFORO RETRO 90S -->
             <div class="retro-clock-container">
@@ -555,7 +555,7 @@
     <!-- MODAL DE SALUDOS -->
 <div id="modal-saludos" class="modal-section">
   <div class="modal-content">
-    <span class="close-btn" onclick="cerrarSecciones()">&times;</span>
+    <span class="close-btn" onclick="document.getElementById('modal-saludos').style.display='none'">&times;</span>
     <h2>💬 Dejanos tu Saludo en Vivo</h2>
     
     <form id="form-saludo" onsubmit="enviarSaludo(event)" style="margin-top: 15px;">
