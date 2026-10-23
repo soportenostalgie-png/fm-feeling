@@ -1157,22 +1157,23 @@ setInterval(() => {
     // ============================================================
     // PANORAMA DE NOTICIAS
     // ============================================================
-   async function cargarPanoramaInformativo() {
+  async function cargarPanoramaInformativo() {
     const newsTrack = document.getElementById('news-track');
     if (!newsTrack) return;
 
-    const rssUrl = 'https://news.google.com/rss/search?q=Argentina&hl=es-419&gl=AR&ceid=AR:es-419';
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+    // Usamos el feed de noticias de Argentina simplificado
+    const rssUrl = 'https://news.google.com/rss?hl=es-419&gl=AR&ceid=AR:es-419';
+    const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rssUrl)}`;
 
     try {
         const res = await fetch(proxyUrl, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         
-        const data = await res.json();
-        if (!data.contents) throw new Error('Respuesta vacía');
+        const xmlText = await res.text();
+        if (!xmlText) throw new Error('Respuesta vacía');
 
         const parser = new DOMParser();
-        const xml = parser.parseFromString(data.contents, "text/xml");
+        const xml = parser.parseFromString(xmlText, "text/xml");
         const items = Array.from(xml.querySelectorAll("item")).slice(0, 8);
 
         if (!items.length) throw new Error('Sin titulares');
@@ -1190,15 +1191,6 @@ setInterval(() => {
         newsTrack.innerHTML = `<span class="news-item"><span>PANORAMA DE NOTICIAS</span>: No se pudieron actualizar los titulares en este momento.</span>`;
     }
 }
-
-// ============================================================
-// ACTUALIZACIÓN AUTOMÁTICA DE NOTICIAS (Opcional)
-// ============================================================
-// Carga las noticias apenas entra la persona a la página:
-cargarPanoramaInformativo();
-
-// Se vuelve a actualizar automáticamente cada 15 minutos (900.000 milisegundos):
-setInterval(cargarPanoramaInformativo, 15 * 60 * 1000);
 // -------------------------------------------------------------------------
 // PASARELA DE FINANZAS EN VIVO (DÓLAR, EURO, REAL)
 // -------------------------------------------------------------------------
