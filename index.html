@@ -1157,29 +1157,48 @@ setInterval(() => {
     // ============================================================
     // PANORAMA DE NOTICIAS
     // ============================================================
-    async function cargarPanoramaInformativo() {
-        const newsTrack = document.getElementById('news-track');
-        if (!newsTrack) return;
+   async function cargarPanoramaInformativo() {
+    const newsTrack = document.getElementById('news-track');
+    if (!newsTrack) return;
 
-        const rssUrl = 'https://news.google.com/rss/search?q=Argentina&hl=es-419&gl=AR&ceid=AR:es-419';
-        const proxyUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(rssUrl);
+    const rssUrl = 'https://news.google.com/rss/search?q=Argentina&hl=es-419&gl=AR&ceid=AR:es-419';
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
 
-        try {
-            const res = await fetch(proxyUrl, { cache: 'no-store' });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            if (!data.items || !data.items.length) throw new Error('Sin titulares');
+    try {
+        const res = await fetch(proxyUrl, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        
+        const data = await res.json();
+        if (!data.contents) throw new Error('Respuesta vacía');
 
-            const titulares = data.items.slice(0, 8).map(item => {
-                const titulo = (item.title || 'Sin título').replace(/&amp;/g, '&').replace(/<[^>]*>/g, '').trim();
-                return `<span class="news-item"><span>ÚLTIMA HORA</span>: ${titulo}</span>`;
-            }).join('');
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(data.contents, "text/xml");
+        const items = Array.from(xml.querySelectorAll("item")).slice(0, 8);
 
-            newsTrack.innerHTML = titulares;
-        } catch (e) {
-            newsTrack.innerHTML = `<span class="news-item"><span>PANORAMA DE NOTICIAS</span>: No se pudieron actualizar los titulares en este momento.</span>`;
-        }
+        if (!items.length) throw new Error('Sin titulares');
+
+        const titulares = items.map(item => {
+            const rawTitle = item.querySelector("title")?.textContent || 'Sin título';
+            const titulo = rawTitle.replace(/&amp;/g, '&').replace(/<[^>]*>/g, '').trim();
+            return `<span class="news-item"><span>ÚLTIMA HORA</span>: ${titulo}</span>`;
+        }).join(' ');
+
+        newsTrack.innerHTML = titulares;
+
+    } catch (e) {
+        console.error("Error noticias:", e);
+        newsTrack.innerHTML = `<span class="news-item"><span>PANORAMA DE NOTICIAS</span>: No se pudieron actualizar los titulares en este momento.</span>`;
     }
+}
+
+// ============================================================
+// ACTUALIZACIÓN AUTOMÁTICA DE NOTICIAS (Opcional)
+// ============================================================
+// Carga las noticias apenas entra la persona a la página:
+cargarPanoramaInformativo();
+
+// Se vuelve a actualizar automáticamente cada 15 minutos (900.000 milisegundos):
+setInterval(cargarPanoramaInformativo, 15 * 60 * 1000);
 // -------------------------------------------------------------------------
 // PASARELA DE FINANZAS EN VIVO (DÓLAR, EURO, REAL)
 // -------------------------------------------------------------------------
