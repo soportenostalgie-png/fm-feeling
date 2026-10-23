@@ -1162,7 +1162,7 @@ setInterval(() => {
     if (!newsTrack) return;
 
     // Usamos el feed de noticias de Argentina simplificado
-    const rssUrl = 'https://news.google.com/rss?hl=es-419&gl=AR&ceid=AR:es-419';
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rssUrl)}`;
     const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rssUrl)}`;
 
     try {
