@@ -1161,23 +1161,21 @@ setInterval(() => {
     const newsTrack = document.getElementById('news-track');
     if (!newsTrack) return;
 
-    // Usamos el feed de noticias de Argentina simplificado
+    const rssUrl = 'https://news.google.com/rss?hl=es-419&gl=AR&ceid=AR:es-419';
     const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rssUrl)}`;
-    const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rssUrl)}`;
 
     try {
         const res = await fetch(proxyUrl, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         
         const xmlText = await res.text();
-        if (!xmlText) throw new Error('Respuesta vacía');
+        if (!xmlText) throw new Error('Respuesta vacia');
 
         const parser = new DOMParser();
         const xml = parser.parseFromString(xmlText, "text/xml");
         const items = Array.from(xml.querySelectorAll("item")).slice(0, 8);
 
         if (!items.length) throw new Error('Sin titulares');
-
         const titulares = items.map(item => {
             const rawTitle = item.querySelector("title")?.textContent || 'Sin título';
             const titulo = rawTitle.replace(/&amp;/g, '&').replace(/<[^>]*>/g, '').trim();
