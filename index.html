@@ -1161,19 +1161,32 @@ async function cargarPanoramaInformativo() {
     const newsTrack = document.getElementById('news-track');
     if (!newsTrack) return;
 
-    // Feed directo a JSON mediante servicio seguro HTTPS
-    const rssUrl = 'https://news.google.com/rss?hl=es-419&gl=AR&ceid=AR:es-419';
-    const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&api_key=`;
+    // Titulares de respaldo locales por si los servidores externos fallan
+    const titularesRespaldo = [
+        "TRANSMITIENDO LOS MEJORES CLÁSICOS DE LOS 70, 80 Y 90",
+        "FM FEELING: MÚSICA EN VIVO Y LA MEJOR PROGRAMACIÓN LAS 24 HORAS",
+        "SEGUINOS EN NUESTRAS REDES SOCIALES Y ENTRATE DE TODOS LOS EVENTOS",
+        "PANORAMA INFORMATIVO: ACTUALIZACIÓN CONSTANTE DESDE BUENOS AIRES"
+    ];
 
     try {
-        const res = await fetch(proxyUrl, { method: 'GET', cache: 'no-store' });
+        const rssUrl = 'https://news.google.com/rss?hl=es-419&gl=AR&ceid=AR:es-419';
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+        
+        const res = await fetch(proxyUrl, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         
         const data = await res.json();
-        if (!data.items || !data.items.length) throw new Error('Sin titulares');
+        if (!data.contents) throw new Error('Respuesta vacía');
 
-        const titulares = data.items.slice(0, 8).map(item => {
-            const rawTitle = item.title || 'Sin título';
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(data.contents, "text/xml");
+        const items = Array.from(xml.querySelectorAll("item")).slice(0, 8);
+
+        if (!items.length) throw new Error('Sin titulares');
+
+        const titulares = items.map(item => {
+            const rawTitle = item.querySelector("title")?.textContent || 'Sin título';
             const titulo = rawTitle.replace(/&amp;/g, '&').replace(/<[^>]*>/g, '').trim();
             return `<span class="news-item"><span>ÚLTIMA HORA</span>: ${titulo}</span>`;
         }).join(' ');
@@ -1181,8 +1194,13 @@ async function cargarPanoramaInformativo() {
         newsTrack.innerHTML = titulares;
 
     } catch (e) {
-        console.error("Error noticias:", e);
-        newsTrack.innerHTML = `<span class="news-item"><span>PANORAMA DE NOTICIAS</span>: No se pudieron actualizar los titulares en este momento.</span>`;
+        // Si falla cualquier proxy (Error 500, 522, etc.), cargamos los títulos institucionales sin romper la web
+        console.warn("Usando titulares de respaldo locales debido a restricción externa:", e);
+        const titularesFallback = titularesRespaldo.map(t => 
+            `<span class="news-item"><span>FM FEELING</span>: ${t}</span>`
+        ).join(' ');
+        
+        newsTrack.innerHTML = titularesFallback;
     }
 }
 // -------------------------------------------------------------------------
