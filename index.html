@@ -1161,15 +1161,16 @@ async function cargarPanoramaInformativo() {
     const newsTrack = document.getElementById('news-track');
     if (!newsTrack) return;
 
-    // Titulares de respaldo locales por si los servidores externos fallan
-    const titularesRespaldo = [
-        "TRANSMITIENDO LOS MEJORES CLÁSICOS DE LOS 70, 80 Y 90",
-        "FM FEELING: MÚSICA EN VIVO Y LA MEJOR PROGRAMACIÓN LAS 24 HORAS",
-        "SEGUINOS EN NUESTRAS REDES SOCIALES Y ENTRATE DE TODOS LOS EVENTOS",
-        "PANORAMA INFORMATIVO: ACTUALIZACIÓN CONSTANTE DESDE BUENOS AIRES"
+    // Pauta publicitaria, eslóganes y avisos institucionales de la radio para el respaldo automático
+    const publicidadRadio = [
+        "FM FEELING: TRANSMITIENDO LOS MEJORES CLÁSICOS DE LOS 70, 80 Y 90 LAS 24 HORAS",
+        "PRÓXIMO EVENTO: JAY ASTON'S GENE LOVES JEZEBEL EN VIVO - VIERNES 6 DE NOVIEMBRE EN AUDITORIO BEETHOVEN",
+        "SEGUINOS EN NUESTRAS REDES SOCIALES Y VISITÁ FMFEELING.COM PARA MÁS NOVEDADES",
+        "ESTUDIO Y TRANSMISIÓN EN DIRECTO CON LA MEZCLA MELODICA PURA Y EL POP CLÁSICO"
     ];
 
     try {
+        // Intento de conexión con el feed de noticias abierto
         const rssUrl = 'https://news.google.com/rss?hl=es-419&gl=AR&ceid=AR:es-419';
         const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
         
@@ -1194,13 +1195,13 @@ async function cargarPanoramaInformativo() {
         newsTrack.innerHTML = titulares;
 
     } catch (e) {
-        // Si falla cualquier proxy (Error 500, 522, etc.), cargamos los títulos institucionales sin romper la web
-        console.warn("Usando titulares de respaldo locales debido a restricción externa:", e);
-        const titularesFallback = titularesRespaldo.map(t => 
-            `<span class="news-item"><span>FM FEELING</span>: ${t}</span>`
+        // MODO HÍBRIDO: Si el servicio externo falla, activa la pauta publicitaria y promos de la radio
+        console.warn("Pasarela de noticias en modo respaldo institucional:", e);
+        const anunciosHtml = publicidadRadio.map(promo => 
+            `<span class="news-item"><span>FM FEELING</span>: ${promo}</span>`
         ).join(' ');
         
-        newsTrack.innerHTML = titularesFallback;
+        newsTrack.innerHTML = anunciosHtml;
     }
 }
 // -------------------------------------------------------------------------
