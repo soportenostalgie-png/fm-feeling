@@ -1157,25 +1157,28 @@ setInterval(() => {
     // ============================================================
     // PANORAMA DE NOTICIAS
     // ============================================================
-  async function cargarPanoramaInformativo() {
+ async function cargarPanoramaInformativo() {
     const newsTrack = document.getElementById('news-track');
     if (!newsTrack) return;
 
+    // RSS oficial de Google News Argentina limpia
     const rssUrl = 'https://news.google.com/rss?hl=es-419&gl=AR&ceid=AR:es-419';
-    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rssUrl)}`;
+    // Proxy con respuesta estructurada sin bloqueos 403
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
 
     try {
         const res = await fetch(proxyUrl, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         
-        const xmlText = await res.text();
-        if (!xmlText) throw new Error('Respuesta vacia');
+        const data = await res.json();
+        if (!data.contents) throw new Error('Respuesta vacía');
 
         const parser = new DOMParser();
-        const xml = parser.parseFromString(xmlText, "text/xml");
+        const xml = parser.parseFromString(data.contents, "text/xml");
         const items = Array.from(xml.querySelectorAll("item")).slice(0, 8);
 
         if (!items.length) throw new Error('Sin titulares');
+
         const titulares = items.map(item => {
             const rawTitle = item.querySelector("title")?.textContent || 'Sin título';
             const titulo = rawTitle.replace(/&amp;/g, '&').replace(/<[^>]*>/g, '').trim();
