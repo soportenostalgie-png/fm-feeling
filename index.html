@@ -1132,29 +1132,32 @@ async function cargarPanoramaInformativo() {
     ];
 
     try {
-        // Intento de conexión con el feed de noticias abierto
-        const rssUrl = 'https://news.google.com/rss?hl=es-419&gl=AR&ceid=AR:es-419';
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
-        
-        const res = await fetch(proxyUrl, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        
-        const data = await res.json();
-        if (!data.contents) throw new Error('Respuesta vacía');
+    
+  // Usando un conversor RSS a JSON directo
+  const rssApiUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent('https://news.google.com/rss?hl=es-419&gl=AR&ceid=AR:es-419');
 
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(data.contents, "text/xml");
-        const items = Array.from(xml.querySelectorAll("item")).slice(0, 8);
+  const res = await fetch(rssApiUrl, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-        if (!items.length) throw new Error('Sin titulares');
+  const data = await res.json();
+  if (!data.items || data.items.length === 0) throw new Error('Sin titulares');
 
-        const titulares = items.map(item => {
-            const rawTitle = item.querySelector("title")?.textContent || 'Sin título';
-            const titulo = rawTitle.replace(/&amp;/g, '&').replace(/<[^>]*>/g, '').trim();
-            return `<span class="news-item"><span>ÚLTIMA HORA</span>: ${titulo}</span>`;
-        }).join(' ');
+  const titulares = data.items.slice(0, 8).map(item => {
+    const titulo = item.title.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
+    return `<span class="news-item"><span class="news-hora">&bull;</span> ${titulo}</span>`;
+  }).join(' ');
 
-        newsTrack.innerHTML = titulares;
+  newsTrack.innerHTML = titulares;
+
+} catch (e) {
+  // Respaldo institucional automático si falla la red
+  console.warn("Pasarela de noticias en modo respaldo institucional:", e);
+  const anuncioHtml = publicidadRadio.map(promo => 
+    `<span class="news-item"><span class="news-span">FEELING:</span> ${promo}</span>`
+  ).join('');
+
+  newsTrack.innerHTML = anuncioHtml;
+}
 
     } catch (e) {
         // MODO HÍBRIDO: Si el servicio externo falla, activa la pauta publicitaria y promos de la radio
