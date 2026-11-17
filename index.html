@@ -1140,7 +1140,7 @@ async function cargarPanoramaInformativo() {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
   const data = await res.json();
-  if (!data.items || data.items.length === 0) throw new Error('Sin titulares');
+  if (!data.items && data.items.length === 0) throw new Error('Sin titulares');
 
   const titulares = data.items.slice(0, 8).map(item => {
     const titulo = item.title.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').trim();
