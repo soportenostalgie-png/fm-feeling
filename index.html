@@ -1149,16 +1149,6 @@ async function cargarPanoramaInformativo() {
 
   newsTrack.innerHTML = titulares;
 
-} catch (e) {
-  // Respaldo institucional automático si falla la red
-  console.warn("Pasarela de noticias en modo respaldo institucional:", e);
-  const anuncioHtml = publicidadRadio.map(promo => 
-    `<span class="news-item"><span class="news-span">FEELING:</span> ${promo}</span>`
-  ).join('');
-
-  newsTrack.innerHTML = anuncioHtml;
-}
-
     } catch (e) {
         // MODO HÍBRIDO: Si el servicio externo falla, activa la pauta publicitaria y promos de la radio
         console.warn("Pasarela de noticias en modo respaldo institucional:", e);
